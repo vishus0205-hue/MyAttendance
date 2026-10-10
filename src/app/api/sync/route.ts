@@ -225,6 +225,7 @@ export async function POST(request: Request) {
         recordsInserted: inserted,
         recordsUpdated: updated,
       });
+    } catch (syncError: unknown) {
       let errorMsg = syncError instanceof Error ? syncError.message : String(syncError);
       if (errorMsg.includes("Executable doesn't exist") || errorMsg.includes("browserType.launch")) {
         errorMsg = "Live sync runs automatically every night between 6 PM - 7 AM via GitHub Actions. You can also trigger an instant sync from the GitHub Actions tab in your repo!";
