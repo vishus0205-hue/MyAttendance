@@ -4,7 +4,7 @@ import { Navbar } from "@/components/layout/Navbar";
 
 export const metadata: Metadata = {
   title: "MyAttendace — SVKM Portal Attendance Dashboard",
-  description: "Automated student attendance tracking, bunk buffer calculator, and analytics dashboard.",
+  description: "Official SVKM SAP Portal student attendance tracker and real-time performance dashboard.",
 };
 
 export default function RootLayout({

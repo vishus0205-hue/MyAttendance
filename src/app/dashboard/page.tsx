@@ -257,50 +257,41 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Bunk Buffer / Recovery Card */}
+        {/* Lectures Missed Card */}
         <div className="bg-card p-5 rounded-2xl border border-border/60 shadow-sm">
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            {overall.bunkBuffer > 0 ? "Bunk Margin Buffer" : "Recovery Required"}
+            Lectures Missed
           </span>
           <div className="mt-3 flex items-baseline gap-2">
-            {overall.bunkBuffer > 0 ? (
-              <>
-                <span className="text-4xl font-extrabold text-blue-600 dark:text-blue-400">{overall.bunkBuffer}</span>
-                <span className="text-xs text-muted-foreground font-medium">safe classes to miss</span>
-              </>
-            ) : (
-              <>
-                <span className="text-4xl font-extrabold text-amber-600 dark:text-amber-400">{overall.classesNeeded}</span>
-                <span className="text-xs text-muted-foreground font-medium">consecutive classes needed</span>
-              </>
-            )}
+            <span className="text-4xl font-extrabold text-red-600 dark:text-red-400">{overall.absentCount}</span>
+            <span className="text-xs text-muted-foreground font-medium">absent sessions</span>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            {overall.bunkBuffer > 0
-              ? `You stay $\\ge$ ${user.targetThreshold}% even after missing ${overall.bunkBuffer} more lectures.`
-              : `Attend next ${overall.classesNeeded} classes consecutively to hit ${user.targetThreshold}%.`}
+            {overall.totalHeld > 0
+              ? `${((overall.absentCount / overall.totalHeld) * 100).toFixed(1)}% of total conducted sessions missed till now.`
+              : "No attendance recorded yet."}
           </p>
         </div>
 
-        {/* Subject Risk Count Card */}
+        {/* Courses Meeting Cutoff Card */}
         <div className="bg-card p-5 rounded-2xl border border-border/60 shadow-sm">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Course Health</span>
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Courses Meeting Cutoff</span>
           <div className="mt-3 flex items-baseline gap-2">
             <span
               className={`text-4xl font-extrabold ${
                 overall.subjectsBelowThreshold > 0
-                  ? "text-red-600 dark:text-red-400"
+                  ? "text-amber-600 dark:text-amber-400"
                   : "text-emerald-600 dark:text-emerald-400"
               }`}
             >
-              {overall.subjectsBelowThreshold}
+              {overall.subjectsCount - overall.subjectsBelowThreshold}
             </span>
-            <span className="text-xs text-muted-foreground font-medium">of {overall.subjectsCount} courses below threshold</span>
+            <span className="text-xs text-muted-foreground font-medium">of {overall.subjectsCount} courses &ge; {user.targetThreshold}%</span>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
             {overall.subjectsBelowThreshold === 0
-              ? "All enrolled courses meet the attendance minimum."
-              : `${overall.subjectsBelowThreshold} subject requires attendance attention.`}
+              ? `All ${overall.subjectsCount} courses meet the ${user.targetThreshold}% attendance cutoff.`
+              : `${overall.subjectsBelowThreshold} course currently below the ${user.targetThreshold}% cutoff.`}
           </p>
         </div>
       </div>
@@ -312,12 +303,12 @@ export default function DashboardPage() {
             <AlertTriangle className="h-6 w-6 text-red-600 shrink-0 mt-0.5" />
             <div>
               <h3 className="text-sm font-bold text-red-900 dark:text-red-200">
-                Attendance Alert: {overall.subjectsBelowThreshold} Subject Below {user.targetThreshold}% Cutoff
+                Attendance Notice: {overall.subjectsBelowThreshold} Course Below {user.targetThreshold}% Cutoff
               </h3>
               <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">
                 {subjects
                   .filter((s) => s.isBelowThreshold)
-                  .map((s) => `${s.subjectName} (${s.percentage}%) - Attend next ${s.classesNeeded} classes`)
+                  .map((s) => `${s.subjectName} (${s.percentage}% — ${s.totalAttended}/${s.totalHeld} attended)`)
                   .join(" • ")}
               </p>
             </div>
@@ -326,7 +317,7 @@ export default function DashboardPage() {
             href="/subjects"
             className="text-xs font-semibold px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl shrink-0 transition flex items-center gap-1.5 self-start sm:self-center"
           >
-            <span>Review Calculator</span>
+            <span>Review Subjects</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -389,7 +380,7 @@ export default function DashboardPage() {
             Enrolled Academic Subjects
           </h3>
           <Link href="/subjects" className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1">
-            Detailed Forecast <ArrowRight className="h-3 w-3" />
+            Subject Details <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
 
@@ -452,15 +443,12 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs">
-                    {sub.bunkBuffer > 0 ? (
-                      <span className="text-blue-600 font-semibold">
-                        Can safely bunk: {sub.bunkBuffer} classes
-                      </span>
-                    ) : (
-                      <span className="text-red-600 font-semibold">
-                        Need {sub.classesNeeded} consecutive classes
-                      </span>
-                    )}
+                    <span className="text-xs text-muted-foreground font-medium">
+                      Status:{" "}
+                      <strong className={isSubHealthy ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
+                        {isSubHealthy ? "Above Threshold" : "Below Threshold"}
+                      </strong>
+                    </span>
                     <Link
                       href={`/subjects?id=${sub.subjectId}`}
                       className="text-muted-foreground hover:text-foreground text-[11px] font-medium"

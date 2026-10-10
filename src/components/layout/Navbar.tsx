@@ -53,7 +53,7 @@ export function Navbar() {
   const navLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/attendance", label: "Daily Log", icon: CalendarDays },
-    { href: "/subjects", label: "Subjects & Forecast", icon: BookOpen },
+    { href: "/subjects", label: "Subjects", icon: BookOpen },
     { href: "/calendar", label: "Calendar", icon: Calendar },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
