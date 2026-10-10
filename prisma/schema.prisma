@@ -1,0 +1,111 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String              @id @default(cuid())
+  studentId        String?             @unique
+  email            String              @unique
+  passwordHash     String
+  name             String?
+  targetThreshold  Float               @default(75.0)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  portalConnection PortalConnection?
+  subjects         Subject[]
+  attendance       AttendanceRecord[]
+  syncJobs         AttendanceSyncJob[]
+
+  @@map("users")
+}
+
+model PortalConnection {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portalUrl            String
+  encryptedUsername    String
+  encryptedPassword    String
+  iv                   String    // 12-byte initialization vector in hex (24 chars)
+  authTag              String    // 16-byte auth tag in hex (32 chars)
+  academicYear         String?   @default("2026-2027")
+  semester             String?   @default("Semester V")
+  reportType           String?   @default("Detail Report")
+  startDate            String?   @default("01.06.2026")
+  endDate              String?
+  connectionStatus     String    @default("NOT_CONFIGURED") // NOT_CONFIGURED, CONNECTED, AUTH_FAILED, ERROR
+  autoSyncEnabled      Boolean   @default(true)
+  syncTimeUtc          String    @default("01:00") // 01:00 UTC (06:30 IST)
+  lastSyncAttemptAt    DateTime?
+  lastSuccessfulSyncAt DateTime?
+  lastSyncError        String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@map("portal_connections")
+}
+
+model Subject {
+  id         String             @id @default(cuid())
+  userId     String
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code       String?
+  name       String
+  records    AttendanceRecord[]
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("subjects")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  ON_DUTY
+  MEDICAL_LEAVE
+  CANCELLED
+  UNKNOWN
+}
+
+model AttendanceRecord {
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId      String?
+  subject        Subject?         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  attendanceDate DateTime         @db.Date
+  periodNumber   Int?
+  status         AttendanceStatus @default(UNKNOWN)
+  source         String           @default("PORTAL_SYNC") // PORTAL_SYNC, MANUAL_IMPORT, DEMO_SEED
+  lastObservedAt DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([userId, subjectId, attendanceDate, periodNumber])
+  @@index([userId, attendanceDate])
+  @@index([subjectId])
+  @@map("attendance_records")
+}
+
+model AttendanceSyncJob {
+  id                    String    @id @default(cuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status                String    @default("PENDING") // PENDING, IN_PROGRESS, SUCCESS, FAILED
+  startedAt             DateTime  @default(now())
+  completedAt           DateTime?
+  recordsFetched        Int       @default(0)
+  recordsInserted       Int       @default(0)
+  recordsUpdated        Int       @default(0)
+  sanitizedErrorMessage String?
+
+  @@index([userId, startedAt])
+  @@map("attendance_sync_jobs")
+}
