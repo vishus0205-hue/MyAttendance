@@ -101,43 +101,37 @@ async function runNightlySync() {
       let updated = 0;
 
       for (const item of records) {
-        const subject = await prisma.subject.upsert({
-          where: {
-            userId_name: {
+        try {
+          const subject = await prisma.subject.upsert({
+            where: {
+              userId_name: {
+                userId: user.id,
+                name: item.subjectName,
+              },
+            },
+            update: { code: item.subjectCode || undefined },
+            create: {
               userId: user.id,
               name: item.subjectName,
+              code: item.subjectCode || undefined,
             },
-          },
-          update: { code: item.subjectCode || undefined },
-          create: {
-            userId: user.id,
-            name: item.subjectName,
-            code: item.subjectCode || undefined,
-          },
-        });
+          });
 
-        const existing = await prisma.attendanceRecord.findFirst({
-          where: {
-            userId: user.id,
-            subjectId: subject.id,
-            attendanceDate: item.attendanceDate,
-            periodNumber: item.periodNumber ?? 1,
-          },
-        });
-
-        if (existing) {
-          await prisma.attendanceRecord.update({
-            where: { id: existing.id },
-            data: {
+          await prisma.attendanceRecord.upsert({
+            where: {
+              userId_subjectId_attendanceDate_periodNumber: {
+                userId: user.id,
+                subjectId: subject.id,
+                attendanceDate: item.attendanceDate,
+                periodNumber: item.periodNumber ?? 1,
+              },
+            },
+            update: {
               status: item.status as AttendanceStatus,
               source: "PORTAL_SYNC",
               lastObservedAt: new Date(),
             },
-          });
-          updated++;
-        } else {
-          await prisma.attendanceRecord.create({
-            data: {
+            create: {
               userId: user.id,
               subjectId: subject.id,
               attendanceDate: item.attendanceDate,
@@ -148,6 +142,8 @@ async function runNightlySync() {
             },
           });
           inserted++;
+        } catch (recordErr: any) {
+          console.warn(`⚠️ Warning saving record for ${item.subjectName} (${item.attendanceDate}):`, recordErr.message);
         }
       }
 
