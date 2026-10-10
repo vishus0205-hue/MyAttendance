@@ -43,7 +43,13 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
     if (!this.browser) {
       this.browser = await chromium.launch({
         headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox", "--ignore-certificate-errors"],
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--ignore-certificate-errors",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+        ],
       });
     }
     return this.browser;
