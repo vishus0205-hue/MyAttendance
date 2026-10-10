@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
         if (!testResult.success) {
           return NextResponse.json(
-            { success: false, error: "Invalid Student User ID or Portal Password." },
+            { success: false, error: "Incorrect password for this student account." },
             { status: 401 }
           );
         }
@@ -82,7 +82,13 @@ export async function POST(request: NextRequest) {
           password,
         });
 
-        if (!testResult.success) {
+        const isBrowserMissing = Boolean(
+          testResult.message?.includes("Executable doesn't exist") ||
+          testResult.message?.includes("browserType.launch") ||
+          testResult.message?.includes("playwright")
+        );
+
+        if (!testResult.success && !isBrowserMissing) {
           return NextResponse.json(
             {
               success: false,
