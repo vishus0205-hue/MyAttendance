@@ -11,7 +11,8 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:seed": "node -r ts-node/register prisma/seed.ts",
-    "worker": "ts-node src/workers/attendance-sync.ts"
+    "worker": "ts-node src/workers/attendance-sync.ts",
+    "sync:nightly": "ts-node scripts/nightly-sync.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

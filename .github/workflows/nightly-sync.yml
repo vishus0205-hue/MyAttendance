@@ -1,0 +1,45 @@
+name: SVKM Portal Nightly Attendance Sync
+
+on:
+  schedule:
+    # 14:30 UTC = 8:00 PM IST (Evening window after lectures)
+    # 00:30 UTC = 6:00 AM IST (Early morning window before college)
+    - cron: '30 14 * * *'
+    - cron: '30 0 * * *'
+  # Allows you to manually trigger the sync from GitHub Actions UI anytime
+  workflow_dispatch:
+
+jobs:
+  sync-attendance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium with system dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Run Nightly Sync
+        run: npm run sync:nightly
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PORTAL_ENCRYPTION_SECRET: ${{ secrets.PORTAL_ENCRYPTION_SECRET }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          PORTAL_URL: ${{ secrets.PORTAL_URL || 'https://sdc-sppap1.svkm.ac.in:50001/irj/portal' }}
+          PORTAL_ALLOWED_HOSTS: ${{ secrets.PORTAL_ALLOWED_HOSTS || 'sdc-sppap1.svkm.ac.in' }}
