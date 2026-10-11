@@ -209,9 +209,9 @@ export default function DashboardPage() {
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <span className="font-bold text-xs text-emerald-900 dark:text-emerald-200 block">SVKM SAP Portal Synchronized</span>
+              <span className="font-bold text-xs text-emerald-900 dark:text-emerald-200 block">Attendance Synchronized</span>
               <span className="text-[11px] text-emerald-700/80 dark:text-emerald-300/70">
-                {dataSources.liveRecords} validated records directly fetched from college NetWeaver servers.
+                {dataSources.liveRecords} attendance records synced from college portal.
               </span>
             </div>
           </div>

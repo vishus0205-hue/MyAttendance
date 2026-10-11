@@ -128,7 +128,7 @@ export default function LoginPage() {
 
         <div className="pt-4 border-t border-slate-200/50 dark:border-slate-800/50 text-center flex items-center justify-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
           <Shield className="h-3.5 w-3.5 text-indigo-500" />
-          <span>Zero plaintext storage • AES-256-GCM encrypted session</span>
+          <span>Encrypted credentials • Secure student session</span>
         </div>
       </div>
     </div>

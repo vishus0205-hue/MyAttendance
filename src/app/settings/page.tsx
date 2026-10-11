@@ -175,16 +175,16 @@ function SettingsForm() {
           }, 1500);
         } else if (syncJson.dispatched) {
           setMessage({
-            text: syncJson.message || "Sync dispatched to GitHub Actions runner! Records will update in ~1-2 minutes.",
+            text: syncJson.message || "Sync started in background! Redirecting to dashboard...",
             type: "success",
           });
           setTimeout(() => {
             router.push("/dashboard");
             router.refresh();
-          }, 2500);
+          }, 2000);
         } else if (syncJson.success) {
           setMessage({
-            text: syncJson.message || "Settings saved successfully! Your attendance is scheduled to synchronize automatically every morning at 4:00 AM IST.",
+            text: syncJson.message || "Settings saved successfully! Attendance sync is scheduled.",
             type: "success",
           });
           setTimeout(() => {
@@ -193,13 +193,17 @@ function SettingsForm() {
           }, 2000);
         } else {
           setMessage({
-            text: syncJson.error || syncJson.message || "Settings saved. To sync attendance immediately, trigger 'SVKM Portal Nightly Attendance Sync' in GitHub Actions.",
-            type: "error",
+            text: syncJson.error || syncJson.message || "Settings saved successfully! Redirecting to dashboard...",
+            type: "success",
           });
+          setTimeout(() => {
+            router.push("/dashboard");
+            router.refresh();
+          }, 2000);
         }
       } catch {
         setMessage({
-          text: "Settings saved! If manual sync fails on host, run 'SVKM Portal Nightly Attendance Sync' in GitHub Actions.",
+          text: "Settings saved successfully! Redirecting to dashboard...",
           type: "success",
         });
         setTimeout(() => {
@@ -280,10 +284,10 @@ function SettingsForm() {
           <div className="p-2 rounded-2xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25">
             <SettingsIcon className="h-5 w-5" />
           </div>
-          <span>Settings & Portal Configuration</span>
+          <span>Settings</span>
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Configure your Academic Year, Semester, and Report parameters once to synchronize attendance automatically.
+          Configure your academic year, semester, and portal details.
         </p>
       </div>
 
@@ -309,9 +313,9 @@ function SettingsForm() {
               <Layers className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">SAP Attendance Report Parameters</h2>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Semester & Attendance Filters</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                These settings match the dropdowns on the SVKM Attendance Display WebDynpro portal.
+                Select your academic year and current semester.
               </p>
             </div>
           </div>
@@ -402,9 +406,9 @@ function SettingsForm() {
               <Shield className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">SVKM SAP NetWeaver Portal Credentials</h2>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Portal Credentials</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Encrypted using AES-256-GCM. Isolated per student with zero cross-user access.
+                Your portal login is encrypted and saved securely for your account.
               </p>
             </div>
           </div>
@@ -416,24 +420,10 @@ function SettingsForm() {
                 <User className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="e.g. Rahul Sharma (auto-detected from portal)"
+                  placeholder="e.g. Rahul Sharma"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="w-full pl-9 pr-4 py-2.5 glass-input rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Portal URL</label>
-              <div className="relative">
-                <Globe className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="url"
-                  value={portalUrl}
-                  onChange={(e) => setPortalUrl(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 glass-input rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none"
-                  required
                 />
               </div>
             </div>

@@ -68,7 +68,7 @@ export function Navbar() {
   const handleQuickSync = async () => {
     if (isSyncing) return;
     setIsSyncing(true);
-    setSyncStatusMsg("Contacting SVKM SAP portal server...");
+    setSyncStatusMsg("Connecting to portal...");
 
     try {
       const res = await fetch("/api/sync", { method: "POST" });
@@ -80,7 +80,7 @@ export function Navbar() {
         }, 1000);
         return;
       } else if (data.dispatched) {
-        setSyncStatusMsg("Cloud runner syncing on GitHub Actions... (~30s)");
+        setSyncStatusMsg("Syncing attendance in background... (~30s)");
         
         // Poll job status every 4 seconds for up to 90 seconds
         let attempts = 0;
@@ -99,14 +99,14 @@ export function Navbar() {
               }, 1200);
             } else if (job && job.status === "FAILED") {
               clearInterval(pollInterval);
-              setSyncStatusMsg("Cloud sync failed. Check settings for details.");
+              setSyncStatusMsg("Sync failed. Check your password in Settings.");
               setTimeout(() => {
                 setIsSyncing(false);
                 setSyncStatusMsg(null);
               }, 4000);
             } else if (attempts >= 20) { // ~80 seconds
               clearInterval(pollInterval);
-              setSyncStatusMsg("Sync taking longer than usual. Please refresh shortly.");
+              setSyncStatusMsg("Sync is still processing. Please refresh in a moment.");
               setTimeout(() => {
                 setIsSyncing(false);
                 setSyncStatusMsg(null);
@@ -120,7 +120,7 @@ export function Navbar() {
       } else if (data.success) {
         setSyncStatusMsg(data.message || "Attendance scheduled to sync automatically at 4:00 AM IST");
       } else {
-        setSyncStatusMsg(data.error || data.message || "Sync failed. Check settings or portal credentials.");
+        setSyncStatusMsg(data.error || data.message || "Sync failed. Check settings or portal password.");
       }
     } catch {
       setSyncStatusMsg("Network error during sync.");
@@ -168,7 +168,7 @@ export function Navbar() {
                   MyAttendace
                 </span>
                 <span className="hidden sm:block text-[10px] text-slate-500 dark:text-slate-400 font-medium -mt-1 tracking-normal">
-                  SVKM SAP Portal Companion
+                  Student Attendance Tracker
                 </span>
               </div>
             </Link>

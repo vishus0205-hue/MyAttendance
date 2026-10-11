@@ -41,10 +41,10 @@ export default function RootLayout({
         <footer className="mt-auto py-5 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-white/40 dark:border-white/5 backdrop-blur-md bg-white/30 dark:bg-slate-950/40">
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px]">
             <span className="font-semibold tracking-tight text-slate-700 dark:text-slate-300">
-              MyAttendace © 2026 • SVKM SAP NetWeaver Portal Sync Engine
+              MyAttendace © 2026 • Student Attendance Tracker
             </span>
             <span className="text-slate-500 dark:text-slate-500">
-              AES-256-GCM Zero Plaintext Storage • Automated 4:00 AM IST Sync
+              Secure & Encrypted • Automatic Daily Sync
             </span>
           </div>
         </footer>

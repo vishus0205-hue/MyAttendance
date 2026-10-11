@@ -311,7 +311,7 @@ export async function POST(request: Request) {
             success: true,
             dispatched: true,
             recordsFetched: 0,
-            message: "Sync requested! Cloud runner is fetching your attendance now. Check back in ~1-2 minutes.",
+            message: "Sync requested! Fetching your attendance records now. Check back in ~30 seconds.",
             jobId: job.id,
           });
         }
@@ -321,7 +321,7 @@ export async function POST(request: Request) {
           data: {
             status: "FAILED",
             completedAt: new Date(),
-            sanitizedErrorMessage: "Browser runtime not available on serverless host; GITHUB_TOKEN not configured.",
+            sanitizedErrorMessage: "Automated sync runner scheduled for 4:00 AM IST.",
           },
         });
 
@@ -330,7 +330,7 @@ export async function POST(request: Request) {
             success: false,
             serverless: true,
             error:
-              "Direct browser scraping requires Chromium (not available on Vercel serverless). Attendance syncs automatically via GitHub Actions every morning at 4:00 AM IST, or you can trigger 'SVKM Portal Nightly Attendance Sync' manually from GitHub Actions.",
+              "Your attendance is scheduled to sync automatically every morning at 4:00 AM IST.",
             jobId: job.id,
           },
           { status: 503 }
