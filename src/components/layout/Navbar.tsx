@@ -18,13 +18,21 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 interface UserProfile {
   id: string;
   name: string;
   email: string;
 }
+
+const navLinks = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/attendance", label: "Daily Log", icon: CalendarDays },
+  { href: "/subjects", label: "Subjects", icon: BookOpen },
+  { href: "/calendar", label: "Calendar", icon: Calendar },
+  { href: "/settings", label: "Settings", icon: Settings },
+];
 
 export function Navbar() {
   const pathname = usePathname();
@@ -34,7 +42,126 @@ export function Navbar() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isDark, setIsDark] = useState(false);
 
+  // Active navigation tracking and sliding indicators
+  const [activePath, setActivePath] = useState(pathname);
+
+  // Desktop indicator state
+  const [isReady, setIsReady] = useState(false);
+  const [indicatorStyle, setIndicatorStyle] = useState({
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+    opacity: 0,
+  });
+  const navRef = useRef<HTMLElement | null>(null);
+  const tabRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
+
+  // Mobile indicator state
+  const [isMobileReady, setIsMobileReady] = useState(false);
+  const [mobileIndicatorStyle, setMobileIndicatorStyle] = useState({
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+    opacity: 0,
+  });
+  const mobileNavRef = useRef<HTMLDivElement | null>(null);
+  const mobileTabRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
+
   const isAuthPage = pathname === "/login" || pathname === "/register";
+
+  // Keep activePath in sync with browser navigation
+  useEffect(() => {
+    setActivePath(pathname);
+  }, [pathname]);
+
+  const activeLink =
+    navLinks.find(
+      (link) =>
+        activePath === link.href ||
+        (link.href !== "/dashboard" && activePath.startsWith(link.href))
+    ) || (activePath === "/" ? navLinks[0] : null);
+
+  // Measure and position the desktop sliding active box
+  useEffect(() => {
+    const updateIndicator = () => {
+      if (!activeLink) {
+        setIndicatorStyle((prev) => ({ ...prev, opacity: 0 }));
+        return;
+      }
+      const activeEl = tabRefs.current[activeLink.href];
+      if (activeEl) {
+        setIndicatorStyle({
+          left: activeEl.offsetLeft,
+          top: activeEl.offsetTop,
+          width: activeEl.offsetWidth,
+          height: activeEl.offsetHeight,
+          opacity: 1,
+        });
+      }
+    };
+
+    updateIndicator();
+    const timer = setTimeout(() => {
+      updateIndicator();
+      setIsReady(true);
+    }, 40);
+
+    const container = navRef.current;
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && container) {
+      observer = new ResizeObserver(() => updateIndicator());
+      observer.observe(container);
+    }
+    window.addEventListener("resize", updateIndicator);
+
+    return () => {
+      clearTimeout(timer);
+      if (observer) observer.disconnect();
+      window.removeEventListener("resize", updateIndicator);
+    };
+  }, [activePath, user, activeLink]);
+
+  // Measure and position the mobile sliding active pill
+  useEffect(() => {
+    const updateMobileIndicator = () => {
+      if (!activeLink) {
+        setMobileIndicatorStyle((prev) => ({ ...prev, opacity: 0 }));
+        return;
+      }
+      const activeEl = mobileTabRefs.current[activeLink.href];
+      if (activeEl) {
+        setMobileIndicatorStyle({
+          left: activeEl.offsetLeft,
+          top: activeEl.offsetTop,
+          width: activeEl.offsetWidth,
+          height: activeEl.offsetHeight,
+          opacity: 1,
+        });
+      }
+    };
+
+    updateMobileIndicator();
+    const timer = setTimeout(() => {
+      updateMobileIndicator();
+      setIsMobileReady(true);
+    }, 40);
+
+    const container = mobileNavRef.current;
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && container) {
+      observer = new ResizeObserver(() => updateMobileIndicator());
+      observer.observe(container);
+    }
+    window.addEventListener("resize", updateMobileIndicator);
+
+    return () => {
+      clearTimeout(timer);
+      if (observer) observer.disconnect();
+      window.removeEventListener("resize", updateMobileIndicator);
+    };
+  }, [activePath, user, activeLink]);
 
   useEffect(() => {
     // Sync theme state with <html> tag
@@ -75,14 +202,6 @@ export function Navbar() {
       setUser(null);
     }
   };
-
-  const navLinks = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/attendance", label: "Daily Log", icon: CalendarDays },
-    { href: "/subjects", label: "Subjects", icon: BookOpen },
-    { href: "/calendar", label: "Calendar", icon: Calendar },
-    { href: "/settings", label: "Settings", icon: Settings },
-  ];
 
   const handleQuickSync = async () => {
     if (isSyncing) return;
@@ -194,23 +313,51 @@ export function Navbar() {
               </Link>
             </div>
 
-            {/* Desktop Center Navigation Tabs (Frosted Inset Pill) */}
+            {/* Desktop Center Navigation Tabs (Frosted Inset Pill with Traveling Indicator Box) */}
             {!isAuthPage && user && (
-              <nav className="hidden md:flex items-center gap-1.5 glass-pill p-1.5 rounded-2xl">
+              <nav
+                ref={navRef}
+                className="hidden md:flex items-center gap-1.5 glass-pill p-1.5 rounded-2xl relative"
+              >
+                {/* Traveling / Sliding Active Indicator Box */}
+                <div
+                  className={`absolute rounded-xl bg-white dark:bg-slate-800 shadow-md shadow-black/5 border border-white/60 dark:border-white/10 pointer-events-none ${
+                    isReady
+                      ? "transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                      : "transition-none"
+                  }`}
+                  style={{
+                    left: `${indicatorStyle.left}px`,
+                    top: `${indicatorStyle.top}px`,
+                    width: `${indicatorStyle.width}px`,
+                    height: `${indicatorStyle.height}px`,
+                    opacity: indicatorStyle.opacity,
+                  }}
+                  aria-hidden="true"
+                />
+
                 {navLinks.map((link) => {
                   const Icon = link.icon;
-                  const isActive = pathname === link.href;
+                  const isActive = activeLink?.href === link.href;
                   return (
                     <Link
                       key={link.href}
                       href={link.href}
-                      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                      ref={(el) => {
+                        tabRefs.current[link.href] = el;
+                      }}
+                      onClick={() => setActivePath(link.href)}
+                      className={`relative z-10 flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors duration-200 ${
                         isActive
-                          ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-md shadow-black/5 border border-white/60 dark:border-white/10"
-                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-slate-800/40"
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/30 dark:hover:bg-slate-800/30"
                       }`}
                     >
-                      <Icon className={`h-3.5 w-3.5 ${isActive ? "text-blue-600 dark:text-blue-400" : ""}`} />
+                      <Icon
+                        className={`h-3.5 w-3.5 transition-colors duration-200 ${
+                          isActive ? "text-blue-600 dark:text-blue-400" : ""
+                        }`}
+                      />
                       <span>{link.label}</span>
                     </Link>
                   );
@@ -303,21 +450,49 @@ export function Navbar() {
           aria-label="Mobile Navigation"
           className="fixed bottom-0 inset-x-0 z-50 md:hidden bg-white/85 dark:bg-slate-950/85 backdrop-blur-2xl border-t border-slate-200/60 dark:border-slate-800/60 px-2 pt-1.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] shadow-2xl shadow-black/20"
         >
-          <div className="flex items-center justify-around max-w-md mx-auto">
+          <div
+            ref={mobileNavRef}
+            className="flex items-center justify-around max-w-md mx-auto relative"
+          >
+            {/* Sliding mobile indicator pill */}
+            <div
+              className={`absolute rounded-2xl bg-blue-50/80 dark:bg-blue-950/50 shadow-sm border border-blue-500/15 pointer-events-none ${
+                isMobileReady
+                  ? "transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                  : "transition-none"
+              }`}
+              style={{
+                left: `${mobileIndicatorStyle.left}px`,
+                top: `${mobileIndicatorStyle.top}px`,
+                width: `${mobileIndicatorStyle.width}px`,
+                height: `${mobileIndicatorStyle.height}px`,
+                opacity: mobileIndicatorStyle.opacity,
+              }}
+              aria-hidden="true"
+            />
+
             {navLinks.map((link) => {
               const Icon = link.icon;
-              const isActive = pathname === link.href;
+              const isActive = activeLink?.href === link.href;
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl text-[10px] font-bold transition-all duration-200 active:scale-95 ${
+                  ref={(el) => {
+                    mobileTabRefs.current[link.href] = el;
+                  }}
+                  onClick={() => setActivePath(link.href)}
+                  className={`relative z-10 flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl text-[10px] font-bold transition-all duration-200 active:scale-95 ${
                     isActive
-                      ? "text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-950/50 shadow-sm"
+                      ? "text-blue-600 dark:text-blue-400"
                       : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
-                  <Icon className={`h-4 w-4 mb-0.5 transition-transform ${isActive ? "text-blue-600 dark:text-blue-400 scale-110" : ""}`} />
+                  <Icon
+                    className={`h-4 w-4 mb-0.5 transition-transform duration-200 ${
+                      isActive ? "text-blue-600 dark:text-blue-400 scale-110" : ""
+                    }`}
+                  />
                   <span>{link.label}</span>
                 </Link>
               );
