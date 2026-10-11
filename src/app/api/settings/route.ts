@@ -6,6 +6,7 @@ import { z } from "zod";
 
 const settingsSchema = z.object({
   targetThreshold: z.number().min(50).max(100).optional(),
+  name: z.string().min(1).optional(),
   portalUrl: z.string().url().optional(),
   username: z.string().min(1).optional(),
   password: z.string().min(1).optional(),
@@ -63,11 +64,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = settingsSchema.parse(body);
 
-    // 1. Update user threshold if provided
-    if (parsed.targetThreshold !== undefined) {
+    // 1. Update user threshold or display name if provided
+    const userUpdate: { targetThreshold?: number; name?: string } = {};
+    if (parsed.targetThreshold !== undefined) userUpdate.targetThreshold = parsed.targetThreshold;
+    if (parsed.name !== undefined && parsed.name.trim()) userUpdate.name = parsed.name.trim();
+
+    if (Object.keys(userUpdate).length > 0) {
       await prisma.user.update({
         where: { id: user.id },
-        data: { targetThreshold: parsed.targetThreshold },
+        data: userUpdate,
       });
     }
 

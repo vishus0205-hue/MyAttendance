@@ -468,10 +468,18 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
         });
       }
 
+      let resolvedStudentName = studentName;
+      if (!resolvedStudentName) {
+        const nameMatch = fullText.match(/(?:Student\s*Name|Name\s*of\s*the\s*Student|Name\s*of\s*Student|Student)\s*[:\-]\s*([A-Za-z\s.]+?)(?:\r?\n|\t|Roll|SAP|Student\s*No|Student\s*Id|Registration|Program|Semester|$)/i);
+        if (nameMatch && nameMatch[1].trim().length > 2) {
+          resolvedStudentName = nameMatch[1].trim();
+        }
+      }
+
       return {
         fetchedAt: new Date(),
         source: "SVKM_SAP_PORTAL",
-        studentName: studentName || undefined,
+        studentName: resolvedStudentName || undefined,
         studentId: credentials.username,
         term: yearSelected || undefined,
         items,

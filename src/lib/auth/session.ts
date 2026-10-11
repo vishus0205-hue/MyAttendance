@@ -21,16 +21,7 @@ export async function getAuthenticatedUser(): Promise<AppUserSession> {
   if (token) {
     const payload = verifySessionToken(token);
     if (payload?.userId) {
-      if (payload.email && payload.name) {
-        return {
-          id: payload.userId,
-          studentId: payload.studentId ?? null,
-          email: payload.email,
-          name: payload.name,
-          targetThreshold: payload.targetThreshold ?? 75.0,
-        };
-      }
-
+      // Query the database to retrieve live profile data (name, email, threshold)
       const user = await prisma.user.findUnique({
         where: { id: payload.userId },
       });
@@ -38,9 +29,9 @@ export async function getAuthenticatedUser(): Promise<AppUserSession> {
       if (user) {
         return {
           id: user.id,
-          studentId: user.studentId,
+          studentId: user.studentId || payload.studentId || null,
           email: user.email,
-          name: user.name || "Student",
+          name: user.name && user.name !== "Student" ? user.name : (payload.name && payload.name !== "Student" ? payload.name : user.name || "Student"),
           targetThreshold: user.targetThreshold,
         };
       }

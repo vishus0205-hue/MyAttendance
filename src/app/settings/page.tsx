@@ -17,6 +17,7 @@ import {
   Calendar,
   CalendarRange,
   ArrowRight,
+  User,
 } from "lucide-react";
 
 function SettingsForm() {
@@ -28,6 +29,9 @@ function SettingsForm() {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
+  // Student Profile
+  const [fullName, setFullName] = useState("");
 
   // Portal Credentials
   const [portalUrl, setPortalUrl] = useState("https://sdc-sppap1.svkm.ac.in:50001/irj/portal");
@@ -69,6 +73,7 @@ function SettingsForm() {
         if (json.connection?.reportType) setReportType(json.connection.reportType);
         if (json.connection?.startDate) setStartDate(json.connection.startDate);
         if (json.connection?.endDate) setEndDate(json.connection.endDate);
+        if (json.user?.name && json.user.name !== "Student") setFullName(json.user.name);
         if (json.user?.studentId && !username) setUsername(json.user.studentId);
         if (json.user?.targetThreshold) setThreshold(json.user.targetThreshold);
       }
@@ -89,6 +94,7 @@ function SettingsForm() {
       reportType: string;
       startDate: string;
       endDate: string | null;
+      name?: string;
       username?: string;
       password?: string;
     } = {
@@ -102,6 +108,7 @@ function SettingsForm() {
       endDate: endDate.trim() ? endDate.trim() : null,
     };
 
+    if (fullName.trim()) payload.name = fullName.trim();
     if (username.trim()) payload.username = username.trim();
     if (password.trim()) payload.password = password.trim();
 
@@ -403,6 +410,20 @@ function SettingsForm() {
           </div>
 
           <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Your Full Name (Display Name)</label>
+              <div className="relative">
+                <User className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="e.g. Rahul Sharma (auto-detected from portal)"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 glass-input rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Portal URL</label>
               <div className="relative">
