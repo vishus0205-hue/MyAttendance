@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import {
   GraduationCap,
   LayoutDashboard,
@@ -11,11 +10,13 @@ import {
   Calendar,
   Settings,
   RefreshCw,
-  CheckCircle2,
-  AlertCircle,
   LogOut,
   User as UserIcon,
+  CheckCircle2,
+  AlertCircle,
+  Sparkles,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface UserProfile {
   id: string;
@@ -67,7 +68,7 @@ export function Navbar() {
   const handleQuickSync = async () => {
     if (isSyncing) return;
     setIsSyncing(true);
-    setSyncStatusMsg("Synchronizing attendance records with SVKM portal...");
+    setSyncStatusMsg("Contacting SVKM SAP portal server...");
 
     try {
       const res = await fetch("/api/sync", { method: "POST" });
@@ -109,28 +110,119 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Brand */}
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="flex items-center gap-2.5 font-bold text-xl tracking-tight">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-              <GraduationCap className="h-5 w-5" />
-            </div>
-            <div>
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                MyAttendace
-              </span>
-              <span className="block text-[10px] text-muted-foreground font-medium -mt-1 tracking-normal">
-                SVKM Portal Companion
-              </span>
-            </div>
-          </Link>
+    <header className="sticky top-3 z-50 w-full px-4 sm:px-6 lg:px-8 mb-2">
+      <div className="max-w-7xl mx-auto glass-panel rounded-2xl sm:rounded-3xl shadow-xl shadow-black/[0.03] transition-all">
+        <div className="flex h-16 items-center justify-between px-4 sm:px-6">
+          {/* Brand */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-3 font-bold text-lg tracking-tight group"
+            >
+              <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
+                <GraduationCap className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-300 dark:to-purple-400 bg-clip-text text-transparent font-black tracking-tight text-base sm:text-lg">
+                  MyAttendace
+                </span>
+                <span className="hidden sm:block text-[10px] text-slate-500 dark:text-slate-400 font-medium -mt-1 tracking-normal">
+                  SVKM SAP Portal Companion
+                </span>
+              </div>
+            </Link>
+          </div>
+
+          {/* Center Navigation Tabs (Frosted Inset Pill) */}
+          {!isAuthPage && user && (
+            <nav className="hidden md:flex items-center gap-1.5 glass-pill p-1.5 rounded-2xl">
+              {navLinks.map((link) => {
+                const Icon = link.icon;
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                      isActive
+                        ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-md shadow-black/5 border border-white/60 dark:border-white/10"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-slate-800/40"
+                    }`}
+                  >
+                    <Icon className={`h-3.5 w-3.5 ${isActive ? "text-blue-600 dark:text-blue-400" : ""}`} />
+                    <span>{link.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
+
+          {/* Actions & Profile */}
+          <div className="flex items-center gap-2.5">
+            {!isAuthPage && user ? (
+              <>
+                {/* Glowing Sync Button */}
+                <button
+                  onClick={handleQuickSync}
+                  disabled={isSyncing}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 ${
+                    isSyncing
+                      ? "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-wait"
+                      : "bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5"
+                  }`}
+                  title="Fetch latest attendance records from SVKM Portal"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+                  <span className="hidden sm:inline">{isSyncing ? "Syncing..." : "Sync Now"}</span>
+                </button>
+
+                {/* Student Profile Pill */}
+                <div className="flex items-center gap-2 pl-2 border-l border-slate-300/40 dark:border-slate-700/50">
+                  <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-blue-500/20 to-purple-500/20 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold text-xs border border-blue-400/30 shadow-inner">
+                    {getInitials(user.name)}
+                  </div>
+                  <div className="text-left hidden lg:block">
+                    <p className="text-xs font-bold leading-tight text-slate-800 dark:text-slate-200">{user.name}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight truncate max-w-[120px]">{user.email}</p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors ml-0.5"
+                    title="Log Out"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </div>
+              </>
+            ) : !isAuthPage ? (
+              <Link
+                href="/login"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all"
+              >
+                <UserIcon className="h-3.5 w-3.5" />
+                <span>Sign In</span>
+              </Link>
+            ) : null}
+          </div>
         </div>
 
-        {/* Navigation Tabs (Only when authenticated and not on login page) */}
+        {/* Sync Status Banner */}
+        {syncStatusMsg && (
+          <div className="border-t border-white/40 dark:border-white/5 py-2 px-4 text-center text-xs font-medium text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-b-2xl">
+            {isSyncing ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin text-blue-600" />
+            ) : syncStatusMsg.includes("success") || syncStatusMsg.includes("Synced") ? (
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+            )}
+            <span>{syncStatusMsg}</span>
+          </div>
+        )}
+
+        {/* Mobile Navigation Strip */}
         {!isAuthPage && user && (
-          <nav className="hidden md:flex items-center gap-1 bg-muted/50 p-1 rounded-xl border border-border/50">
+          <div className="flex md:hidden border-t border-white/40 dark:border-white/5 px-2 py-1.5 justify-around bg-white/30 dark:bg-slate-900/30 backdrop-blur-md rounded-b-2xl">
             {navLinks.map((link) => {
               const Icon = link.icon;
               const isActive = pathname === link.href;
@@ -138,104 +230,20 @@ export function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                  className={`flex flex-col items-center py-1 px-2.5 rounded-xl text-[10px] font-bold transition-all ${
                     isActive
-                      ? "bg-card text-foreground shadow-sm shadow-black/5 font-semibold"
-                      : "text-muted-foreground hover:text-foreground hover:bg-card/50"
+                      ? "text-blue-600 dark:text-blue-400 bg-white/60 dark:bg-slate-800/60 shadow-sm"
+                      : "text-slate-500 dark:text-slate-400"
                   }`}
                 >
-                  <Icon className={`h-4 w-4 ${isActive ? "text-blue-600" : ""}`} />
-                  {link.label}
+                  <Icon className="h-4 w-4 mb-0.5" />
+                  <span>{link.label}</span>
                 </Link>
               );
             })}
-          </nav>
+          </div>
         )}
-
-        {/* Actions & Profile */}
-        <div className="flex items-center gap-3">
-          {!isAuthPage && user ? (
-            <>
-              {/* Quick Sync Button */}
-              <button
-                onClick={handleQuickSync}
-                disabled={isSyncing}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-sm transition-all ${
-                  isSyncing
-                    ? "bg-muted text-muted-foreground cursor-wait"
-                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20 active:scale-95"
-                }`}
-                title="Fetch latest attendance records from SVKM Portal"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
-                <span>{isSyncing ? "Syncing..." : "Sync Now"}</span>
-              </button>
-
-              {/* Student Profile Pill */}
-              <div className="flex items-center gap-2 pl-2 border-l border-border/60">
-                <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold text-xs border border-blue-200 dark:border-blue-800">
-                  {getInitials(user.name)}
-                </div>
-                <div className="text-left hidden lg:block">
-                  <p className="text-xs font-semibold leading-tight">{user.name}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">{user.email}</p>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="p-1.5 rounded-lg text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors ml-1"
-                  title="Log Out"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
-            </>
-          ) : !isAuthPage ? (
-            <Link
-              href="/login"
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all"
-            >
-              <UserIcon className="h-3.5 w-3.5" />
-              <span>Sign In</span>
-            </Link>
-          ) : null}
-        </div>
       </div>
-
-      {/* Sync Status Banner */}
-      {syncStatusMsg && (
-        <div className="bg-blue-50 dark:bg-blue-950/50 border-b border-blue-200 dark:border-blue-900 py-1.5 px-4 text-center text-xs font-medium text-blue-700 dark:text-blue-300 flex items-center justify-center gap-2">
-          {isSyncing ? (
-            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-          ) : syncStatusMsg.includes("success") ? (
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-          ) : (
-            <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
-          )}
-          <span>{syncStatusMsg}</span>
-        </div>
-      )}
-
-      {/* Mobile Nav Bar */}
-      {!isAuthPage && user && (
-        <div className="flex md:hidden border-t border-border/50 px-2 py-1 justify-around bg-card">
-          {navLinks.map((link) => {
-            const Icon = link.icon;
-            const isActive = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`flex flex-col items-center py-1 px-2 rounded text-[11px] font-medium ${
-                  isActive ? "text-blue-600 font-bold" : "text-muted-foreground"
-                }`}
-              >
-                <Icon className="h-4 w-4 mb-0.5" />
-                {link.label}
-              </Link>
-            );
-          })}
-        </div>
-      )}
     </header>
   );
 }

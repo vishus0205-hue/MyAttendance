@@ -232,22 +232,22 @@ function SettingsForm() {
     <div className="max-w-4xl mx-auto space-y-8">
       {/* First-time prompt banner */}
       {isFirstTime && (
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-5 rounded-2xl shadow-lg shadow-blue-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="glass-panel p-6 rounded-3xl border border-indigo-500/30 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 shadow-xl shadow-indigo-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-300" />
-              <h2 className="font-bold text-sm">One-Time Attendance Setup Required</h2>
+              <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              <h2 className="font-bold text-sm text-slate-900 dark:text-white">One-Time Attendance Setup Required</h2>
             </div>
-            <p className="text-xs text-blue-100 max-w-xl leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-300 max-w-xl leading-relaxed">
               Please enter your <strong>Academic Year</strong>, <strong>Semester</strong>, and <strong>Date Range</strong> below. You only need to enter this once—your attendance will always be fetched and saved specifically for your account!
             </p>
           </div>
           <button
             onClick={handleSaveAndSync}
             disabled={saving || syncing}
-            className="px-4 py-2.5 bg-white text-blue-700 font-bold text-xs rounded-xl hover:bg-blue-50 transition shadow-sm shrink-0 flex items-center gap-2 disabled:opacity-50"
+            className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all shrink-0 flex items-center gap-2 disabled:opacity-50"
           >
-            {syncing ? <RefreshCw className="h-4 w-4 animate-spin text-blue-700" /> : <ArrowRight className="h-4 w-4" />}
+            {syncing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
             <span>{syncing ? "Fetching..." : "Save & Sync Now"}</span>
           </button>
         </div>
@@ -255,24 +255,26 @@ function SettingsForm() {
 
       {/* Page Title */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <SettingsIcon className="h-6 w-6 text-blue-600" />
-          Settings & Portal Configuration
+        <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+          <div className="p-2 rounded-2xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25">
+            <SettingsIcon className="h-5 w-5" />
+          </div>
+          <span>Settings & Portal Configuration</span>
         </h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
           Configure your Academic Year, Semester, and Report parameters once to synchronize attendance automatically.
         </p>
       </div>
 
       {message && (
         <div
-          className={`p-4 rounded-xl border text-xs font-semibold flex items-center gap-2 ${
+          className={`p-4 rounded-2xl border text-xs font-semibold flex items-center gap-2.5 glass-panel ${
             message.type === "success"
-              ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
-              : "bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800 text-red-800 dark:text-red-300"
+              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 shadow-lg shadow-emerald-500/5"
+              : "border-red-500/40 bg-red-500/10 text-red-800 dark:text-red-300 shadow-lg shadow-red-500/5"
           }`}
         >
-          {message.type === "success" ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
+          {message.type === "success" ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" /> : <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />}
           <span>{message.text}</span>
         </div>
       )}
@@ -280,12 +282,14 @@ function SettingsForm() {
       {/* Main Settings Form */}
       <form onSubmit={handleSaveSettings} className="space-y-6">
         {/* 1. Academic Year, Semester & Report Parameters Card */}
-        <div className="bg-card p-6 rounded-2xl border border-border/60 shadow-sm space-y-6">
-          <div className="flex items-center gap-2 pb-3 border-b border-border/50">
-            <Layers className="h-5 w-5 text-indigo-600" />
+        <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/60 dark:border-white/10 shadow-xl shadow-black/[0.02] space-y-6">
+          <div className="flex items-center gap-2.5 pb-4 border-b border-slate-200/50 dark:border-slate-800/50">
+            <div className="p-2 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+              <Layers className="h-5 w-5" />
+            </div>
             <div>
-              <h2 className="text-sm font-bold text-foreground">SAP Attendance Report Parameters</h2>
-              <p className="text-xs text-muted-foreground">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">SAP Attendance Report Parameters</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 These settings match the dropdowns on the SVKM Attendance Display WebDynpro portal.
               </p>
             </div>
@@ -293,43 +297,43 @@ function SettingsForm() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-foreground mb-1">Academic Year</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Academic Year</label>
               <div className="relative">
-                <CalendarRange className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <CalendarRange className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   placeholder="e.g. 2026-2027"
                   value={academicYear}
                   onChange={(e) => setAcademicYear(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-muted/30 border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                  className="w-full pl-9 pr-4 py-2.5 glass-input rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none font-medium"
                   required
                 />
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1">E.g. 2026-2027, 2025-2026, 2024-2025</p>
+              <p className="text-[11px] text-slate-400 mt-1">E.g. 2026-2027, 2025-2026, 2024-2025</p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-foreground mb-1">Trimester / Semester</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Trimester / Semester</label>
               <div className="relative">
-                <Layers className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Layers className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   placeholder="e.g. Semester V"
                   value={semester}
                   onChange={(e) => setSemester(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-muted/30 border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                  className="w-full pl-9 pr-4 py-2.5 glass-input rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none font-medium"
                   required
                 />
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1">E.g. Semester V, Semester IV, Semester VI</p>
+              <p className="text-[11px] text-slate-400 mt-1">E.g. Semester V, Semester IV, Semester VI</p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-foreground mb-1">Report Type</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Report Type</label>
               <select
                 value={reportType}
                 onChange={(e) => setReportType(e.target.value)}
-                className="w-full px-3 py-2 bg-muted/30 border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                className="w-full px-3 py-2.5 glass-input rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none font-medium"
               >
                 <option value="Detail Report">Detail Report (Individual lecture breakdown)</option>
                 <option value="Summary Report">Summary Report (Subject totals)</option>
@@ -337,33 +341,33 @@ function SettingsForm() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-foreground mb-1">Start Date (DD.MM.YYYY)</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Start Date (DD.MM.YYYY)</label>
               <div className="relative">
-                <Calendar className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Calendar className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   placeholder="01.06.2026"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-muted/30 border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  className="w-full pl-9 pr-4 py-2.5 glass-input rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none font-mono"
                   required
                 />
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1">Semester commencement date (e.g. 01.06.2026)</p>
+              <p className="text-[11px] text-slate-400 mt-1">Semester commencement date (e.g. 01.06.2026)</p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-foreground mb-1">
-                End Date (DD.MM.YYYY) <span className="text-muted-foreground font-normal">(Optional, defaults to today)</span>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                End Date (DD.MM.YYYY) <span className="text-slate-400 font-normal">(Optional, defaults to today)</span>
               </label>
               <div className="relative">
-                <Calendar className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Calendar className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Leave empty for current date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-muted/30 border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  className="w-full pl-9 pr-4 py-2.5 glass-input rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none font-mono"
                 />
               </div>
             </div>
@@ -371,12 +375,14 @@ function SettingsForm() {
         </div>
 
         {/* 2. Portal Credentials Card */}
-        <div className="bg-card p-6 rounded-2xl border border-border/60 shadow-sm space-y-6">
-          <div className="flex items-center gap-2 pb-3 border-b border-border/50">
-            <Shield className="h-5 w-5 text-blue-600" />
+        <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/60 dark:border-white/10 shadow-xl shadow-black/[0.02] space-y-6">
+          <div className="flex items-center gap-2.5 pb-4 border-b border-slate-200/50 dark:border-slate-800/50">
+            <div className="p-2 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400">
+              <Shield className="h-5 w-5" />
+            </div>
             <div>
-              <h2 className="text-sm font-bold text-foreground">SVKM SAP NetWeaver Portal Credentials</h2>
-              <p className="text-xs text-muted-foreground">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">SVKM SAP NetWeaver Portal Credentials</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Encrypted using AES-256-GCM. Isolated per student with zero cross-user access.
               </p>
             </div>
@@ -384,14 +390,14 @@ function SettingsForm() {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-foreground mb-1">Portal URL</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Portal URL</label>
               <div className="relative">
-                <Globe className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Globe className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="url"
                   value={portalUrl}
                   onChange={(e) => setPortalUrl(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-muted/30 border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-9 pr-4 py-2.5 glass-input rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none"
                   required
                 />
               </div>
@@ -399,28 +405,28 @@ function SettingsForm() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-foreground mb-1">Student Portal User ID (SAP ID)</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Student Portal User ID (SAP ID)</label>
                 <input
                   type="text"
                   placeholder="e.g. 70472400419"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full px-3 py-2 bg-muted/30 border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-foreground mb-1">
-                  Portal Password <span className="text-muted-foreground font-normal">(Leave empty to keep saved)</span>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Portal Password <span className="text-slate-400 font-normal">(Leave empty to keep saved)</span>
                 </label>
                 <div className="relative">
-                  <Key className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Key className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="password"
                     placeholder="••••••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-muted/30 border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-9 pr-4 py-2.5 glass-input rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none"
                   />
                 </div>
               </div>
@@ -428,10 +434,10 @@ function SettingsForm() {
           </div>
 
           {/* Target Threshold */}
-          <div className="pt-4 border-t border-border/50 space-y-2">
+          <div className="pt-4 border-t border-slate-200/50 dark:border-slate-800/50 space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-bold text-foreground">Attendance Target Threshold</label>
-              <span className="text-xs font-extrabold text-blue-600">{threshold}%</span>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Attendance Target Threshold</label>
+              <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{threshold}%</span>
             </div>
             <input
               type="range"
@@ -440,18 +446,18 @@ function SettingsForm() {
               step="1"
               value={threshold}
               onChange={(e) => setThreshold(Number(e.target.value))}
-              className="w-full accent-blue-600 cursor-pointer"
+              className="w-full accent-indigo-600 cursor-pointer"
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] text-slate-400">
               Courses below this threshold trigger risk alerts and show required classes.
             </p>
           </div>
 
           {/* Automatic Sync */}
-          <div className="pt-4 border-t border-border/50 flex items-center justify-between">
+          <div className="pt-4 border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between">
             <div>
-              <label className="text-xs font-bold text-foreground block">Automatic Daily Synchronization</label>
-              <span className="text-[11px] text-muted-foreground">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Automatic Daily Synchronization</label>
+              <span className="text-[11px] text-slate-400">
                 Fetch attendance automatically in background every morning at 04:00 AM IST.
               </span>
             </div>
@@ -459,16 +465,16 @@ function SettingsForm() {
               type="checkbox"
               checked={autoSync}
               onChange={(e) => setAutoSync(e.target.checked)}
-              className="h-4 w-4 rounded accent-blue-600 cursor-pointer"
+              className="h-4 w-4 rounded accent-indigo-600 cursor-pointer"
             />
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-4 border-t border-border/50">
+          <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-4 border-t border-slate-200/50 dark:border-slate-800/50">
             <button
               type="submit"
               disabled={saving || syncing}
-              className="w-full sm:w-auto px-5 py-2.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold rounded-xl border border-border transition active:scale-95 disabled:opacity-50"
+              className="w-full sm:w-auto px-5 py-2.5 glass-pill hover:bg-white/70 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition active:scale-95 disabled:opacity-50"
             >
               {saving && !syncing ? "Saving..." : "Save Settings Only"}
             </button>
@@ -476,7 +482,7 @@ function SettingsForm() {
               type="button"
               onClick={handleSaveAndSync}
               disabled={saving || syncing}
-              className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-500/20 transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {syncing ? (
                 <>
@@ -495,39 +501,41 @@ function SettingsForm() {
       </form>
 
       {/* 3. Manual CSV Import Fallback */}
-      <div className="bg-card p-6 rounded-2xl border border-border/60 shadow-sm space-y-4">
-        <div className="flex items-center gap-2 pb-3 border-b border-border/50">
-          <FileText className="h-5 w-5 text-emerald-600" />
+      <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/60 dark:border-white/10 shadow-xl shadow-black/[0.02] space-y-4">
+        <div className="flex items-center gap-2.5 pb-4 border-b border-slate-200/50 dark:border-slate-800/50">
+          <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+            <FileText className="h-5 w-5" />
+          </div>
           <div>
-            <h2 className="text-sm font-bold text-foreground">Manual Report / CSV Import Fallback</h2>
-            <p className="text-xs text-muted-foreground">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Manual Report / CSV Import Fallback</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               If the SAP portal is under maintenance or campus firewall blocks connection, paste CSV records here.
             </p>
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-foreground mb-1">
-            CSV Records (Format: <code className="bg-muted px-1 py-0.5 rounded text-[10px]">Date, Subject Name, Period, Status</code>)
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+            CSV Records (Format: <code className="bg-slate-200/50 dark:bg-slate-800/50 px-1 py-0.5 rounded text-[10px]">Date, Subject Name, Period, Status</code>)
           </label>
           <textarea
             rows={4}
             placeholder={`2026-09-10, Computer Networks, 1, Present\n2026-09-10, Database Management Systems, 2, Present\n2026-09-11, Machine Learning, 1, Absent`}
             value={csvContent}
             onChange={(e) => setCsvContent(e.target.value)}
-            className="w-full p-3 font-mono text-xs bg-muted/30 border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 font-mono text-xs glass-input rounded-xl text-slate-900 dark:text-white focus:outline-none"
           />
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="text-xs text-muted-foreground">
-            {importResult && <span className="font-semibold text-emerald-600">{importResult}</span>}
+          <div className="text-xs text-slate-500">
+            {importResult && <span className="font-bold text-emerald-600">{importResult}</span>}
           </div>
           <button
             type="button"
             onClick={handleImportCsv}
             disabled={importing || !csvContent.trim()}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/35 transition active:scale-95 disabled:opacity-50"
           >
             <Upload className="h-3.5 w-3.5" />
             <span>{importing ? "Importing..." : "Import CSV Rows"}</span>

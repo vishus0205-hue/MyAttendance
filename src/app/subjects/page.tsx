@@ -11,6 +11,7 @@ import {
   CalendarDays,
   ArrowRight,
   TrendingUp,
+  Sparkles,
 } from "lucide-react";
 
 interface SubjectSummary {
@@ -68,30 +69,34 @@ function SubjectsContent() {
     <div className="space-y-6">
       {/* Title */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-blue-600" />
-          Enrolled Subjects & Attendance Breakdown
+        <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+          <div className="p-2 rounded-2xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25">
+            <BookOpen className="h-5 w-5" />
+          </div>
+          <span>Enrolled Subjects & Attendance Breakdown</span>
         </h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
           Review official held classes, attended sessions, and attendance percentages recorded till date.
         </p>
       </div>
 
       {loading ? (
-        <div className="py-20 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-          <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
-          <span className="text-xs">Loading course metrics...</span>
+        <div className="py-24 flex flex-col items-center justify-center gap-3">
+          <div className="h-12 w-12 rounded-2xl glass-panel flex items-center justify-center">
+            <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
+          </div>
+          <span className="text-xs font-semibold text-slate-400">Loading course analytics...</span>
         </div>
       ) : subjects.length === 0 ? (
-        <div className="bg-card p-12 rounded-2xl border border-dashed border-border text-center space-y-3">
-          <BookOpen className="h-10 w-10 text-muted-foreground mx-auto" />
-          <h2 className="text-sm font-bold text-foreground">No Enrolled Courses Found</h2>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+        <div className="glass-panel p-12 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 text-center space-y-4">
+          <BookOpen className="h-10 w-10 text-slate-400 mx-auto" />
+          <h2 className="text-base font-bold text-slate-800 dark:text-slate-200">No Enrolled Courses Found</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
             Sync your attendance from the portal or configure your academic parameters in Settings.
           </p>
           <Link
             href="/settings"
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition"
           >
             <span>Open Settings</span>
             <ArrowRight className="h-3.5 w-3.5" />
@@ -101,11 +106,11 @@ function SubjectsContent() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column: Subjects List */}
           <div className="space-y-3">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
               Enrolled Courses ({subjects.length})
             </h2>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {subjects.map((sub) => {
                 const isSelected = sub.subjectId === selectedSubjectId;
                 const isHealthy = sub.percentage >= targetPercent;
@@ -115,29 +120,29 @@ function SubjectsContent() {
                     onClick={() => setSelectedSubjectId(sub.subjectId)}
                     className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
                       isSelected
-                        ? "bg-card border-blue-600 shadow-md shadow-blue-500/10 ring-1 ring-blue-600"
-                        : "bg-card/70 border-border/60 hover:border-border hover:bg-card"
+                        ? "glass-panel border-indigo-500/70 dark:border-indigo-400/60 shadow-lg shadow-indigo-500/10 ring-2 ring-indigo-500/20 translate-x-1"
+                        : "glass-card hover:translate-x-1"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded font-mono">
+                        <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 glass-pill px-2 py-0.5 rounded-lg border border-white/40 dark:border-white/10 uppercase tracking-wider font-mono">
                           {sub.subjectCode || "CORE"}
                         </span>
-                        <h3 className="font-bold text-sm text-foreground mt-1 leading-snug">{sub.subjectName}</h3>
+                        <h3 className="font-bold text-sm text-slate-900 dark:text-white mt-1.5 leading-snug">{sub.subjectName}</h3>
                       </div>
                       <span
-                        className={`text-base font-extrabold ${
-                          isHealthy ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                        className={`text-base font-black ${
+                          isHealthy ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                         }`}
                       >
                         {sub.percentage}%
                       </span>
                     </div>
 
-                    <div className="mt-3 flex justify-between text-xs text-muted-foreground">
+                    <div className="mt-3 flex justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
                       <span>{sub.totalAttended} / {sub.totalHeld} attended</span>
-                      <span className={isHealthy ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
+                      <span className={isHealthy ? "text-emerald-600 font-bold" : "text-rose-600 font-bold"}>
                         {isHealthy ? "Above Cutoff" : "Below Cutoff"}
                       </span>
                     </div>
@@ -151,104 +156,104 @@ function SubjectsContent() {
           {activeSubject && (
             <div className="lg:col-span-2 space-y-6">
               {/* Active Subject Detail Card */}
-              <div className="bg-card p-6 rounded-2xl border border-border/60 shadow-sm space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/50">
+              <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/60 dark:border-white/10 shadow-xl space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-200/50 dark:border-slate-800/50">
                   <div>
-                    <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-0.5 rounded-lg border border-blue-200 dark:border-blue-900">
+                    <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 glass-pill px-3 py-1 rounded-xl border border-indigo-500/30">
                       {activeSubject.subjectCode || "COURSE"}
                     </span>
-                    <h2 className="text-xl font-bold text-foreground mt-1">{activeSubject.subjectName}</h2>
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-2">{activeSubject.subjectName}</h2>
                   </div>
 
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <div
-                      className={`text-3xl font-extrabold ${
+                      className={`text-3xl sm:text-4xl font-black tracking-tight ${
                         activeSubject.percentage >= targetPercent
                           ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-red-600 dark:text-red-400"
+                          : "text-rose-600 dark:text-rose-400"
                       }`}
                     >
                       {activeSubject.percentage}%
                     </div>
-                    <div className="text-xs text-muted-foreground">Current Attendance Rate</div>
+                    <div className="text-[11px] text-slate-400 font-medium mt-0.5">Current Rate (Cutoff: {targetPercent}%)</div>
                   </div>
                 </div>
 
                 {/* Status Notice */}
                 <div
-                  className={`p-4 rounded-xl border flex items-center gap-3 text-xs font-medium ${
+                  className={`p-4 rounded-2xl border flex items-center gap-3 text-xs font-medium ${
                     activeSubject.percentage >= targetPercent
-                      ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
-                      : "bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800 text-red-800 dark:text-red-300"
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
+                      : "bg-rose-500/10 border-rose-500/30 text-rose-800 dark:text-rose-300"
                   }`}
                 >
                   {activeSubject.percentage >= targetPercent ? (
                     <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
                   ) : (
-                    <AlertTriangle className="h-5 w-5 shrink-0 text-red-600" />
+                    <AlertTriangle className="h-5 w-5 shrink-0 text-rose-600" />
                   )}
                   <div>
-                    <strong>
+                    <strong className="block">
                       {activeSubject.percentage >= targetPercent
                         ? "Meets Required Attendance Minimum"
                         : "Below Required Attendance Minimum"}
                     </strong>
                     <p className="mt-0.5 text-[11px] opacity-90">
-                      Attended {activeSubject.totalAttended} out of {activeSubject.totalHeld} conducted sessions till now (Target: {targetPercent}%).
+                      Attended {activeSubject.totalAttended} out of {activeSubject.totalHeld} conducted sessions till date.
                     </p>
                   </div>
                 </div>
 
                 {/* Stats Breakdown Grid */}
                 <div className="space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <TrendingUp className="h-3.5 w-3.5 text-blue-600" />
-                    Session Breakdown Till Now
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                    <TrendingUp className="h-3.5 w-3.5 text-indigo-500" />
+                    <span>Conducted Session Breakdown</span>
                   </h3>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <div className="p-4 bg-muted/30 border border-border/50 rounded-xl">
-                      <span className="text-[11px] text-muted-foreground font-medium">Conducted Till Date</span>
-                      <p className="text-2xl font-bold text-foreground mt-1">{activeSubject.totalHeld}</p>
-                      <span className="text-[10px] text-muted-foreground">Total lecture slots</span>
+                    <div className="p-4 glass-card rounded-2xl">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Conducted</span>
+                      <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{activeSubject.totalHeld}</p>
+                      <span className="text-[10px] text-slate-400">Total lecture slots</span>
                     </div>
 
-                    <div className="p-4 bg-muted/30 border border-border/50 rounded-xl">
-                      <span className="text-[11px] text-muted-foreground font-medium">Total Attended</span>
-                      <p className="text-2xl font-bold text-emerald-600 mt-1">{activeSubject.totalAttended}</p>
-                      <span className="text-[10px] text-muted-foreground">Present + On Duty</span>
+                    <div className="p-4 glass-card rounded-2xl">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Total Attended</span>
+                      <p className="text-2xl font-black text-emerald-600 mt-1">{activeSubject.totalAttended}</p>
+                      <span className="text-[10px] text-slate-400">Present + On Duty</span>
                     </div>
 
-                    <div className="p-4 bg-muted/30 border border-border/50 rounded-xl">
-                      <span className="text-[11px] text-muted-foreground font-medium">Present in Lecture</span>
-                      <p className="text-2xl font-bold text-foreground mt-1">{activeSubject.presentCount}</p>
-                      <span className="text-[10px] text-muted-foreground">
+                    <div className="p-4 glass-card rounded-2xl">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Present</span>
+                      <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{activeSubject.presentCount}</p>
+                      <span className="text-[10px] text-slate-400">
                         {activeSubject.totalHeld > 0
                           ? `${((activeSubject.presentCount / activeSubject.totalHeld) * 100).toFixed(1)}% of total`
                           : "0%"}
                       </span>
                     </div>
 
-                    <div className="p-4 bg-muted/30 border border-border/50 rounded-xl">
-                      <span className="text-[11px] text-muted-foreground font-medium">Absent / Missed</span>
-                      <p className="text-2xl font-bold text-red-600 mt-1">{activeSubject.absentCount}</p>
-                      <span className="text-[10px] text-muted-foreground">
+                    <div className="p-4 glass-card rounded-2xl">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Absent / Missed</span>
+                      <p className="text-2xl font-black text-rose-600 mt-1">{activeSubject.absentCount}</p>
+                      <span className="text-[10px] text-slate-400">
                         {activeSubject.totalHeld > 0
                           ? `${((activeSubject.absentCount / activeSubject.totalHeld) * 100).toFixed(1)}% of total`
                           : "0%"}
                       </span>
                     </div>
 
-                    <div className="p-4 bg-muted/30 border border-border/50 rounded-xl">
-                      <span className="text-[11px] text-muted-foreground font-medium">On Duty (OD)</span>
-                      <p className="text-2xl font-bold text-blue-600 mt-1">{activeSubject.onDutyCount}</p>
-                      <span className="text-[10px] text-muted-foreground">Official college approval</span>
+                    <div className="p-4 glass-card rounded-2xl">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">On Duty (OD)</span>
+                      <p className="text-2xl font-black text-blue-600 mt-1">{activeSubject.onDutyCount}</p>
+                      <span className="text-[10px] text-slate-400">College approved</span>
                     </div>
 
-                    <div className="p-4 bg-muted/30 border border-border/50 rounded-xl">
-                      <span className="text-[11px] text-muted-foreground font-medium">Medical Leave</span>
-                      <p className="text-2xl font-bold text-purple-600 mt-1">{activeSubject.medicalLeaveCount}</p>
-                      <span className="text-[10px] text-muted-foreground">Excused absence</span>
+                    <div className="p-4 glass-card rounded-2xl">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Medical Leave</span>
+                      <p className="text-2xl font-black text-purple-600 mt-1">{activeSubject.medicalLeaveCount}</p>
+                      <span className="text-[10px] text-slate-400">Excused absence</span>
                     </div>
                   </div>
                 </div>
@@ -256,30 +261,30 @@ function SubjectsContent() {
                 {/* Visual Attendance Bar */}
                 <div className="space-y-2 pt-2">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-foreground">Attendance Distribution</span>
-                    <span className="text-muted-foreground">
-                      {activeSubject.presentCount} Present • {activeSubject.onDutyCount} OD • {activeSubject.absentCount} Absent
+                    <span className="font-bold text-slate-800 dark:text-slate-200">Attendance Distribution</span>
+                    <span className="text-slate-400 text-[11px]">
+                      {activeSubject.presentCount} Present • {activeSubject.onDutyCount} OD • {activeSubject.absentCount} Missed
                     </span>
                   </div>
-                  <div className="h-3 w-full bg-muted rounded-full overflow-hidden flex">
+                  <div className="h-3 w-full bg-slate-200/50 dark:bg-slate-800/50 rounded-full overflow-hidden flex p-0.5 border border-white/20">
                     {activeSubject.totalHeld > 0 ? (
                       <>
                         <div
-                          className="bg-emerald-500 h-full transition-all"
+                          className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-l-full transition-all"
                           style={{
                             width: `${(activeSubject.presentCount / activeSubject.totalHeld) * 100}%`,
                           }}
                           title={`Present: ${activeSubject.presentCount}`}
                         />
                         <div
-                          className="bg-blue-500 h-full transition-all"
+                          className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full transition-all"
                           style={{
                             width: `${(activeSubject.onDutyCount / activeSubject.totalHeld) * 100}%`,
                           }}
                           title={`On Duty: ${activeSubject.onDutyCount}`}
                         />
                         <div
-                          className="bg-red-500 h-full transition-all"
+                          className="bg-gradient-to-r from-rose-500 to-red-500 h-full rounded-r-full transition-all"
                           style={{
                             width: `${(activeSubject.absentCount / activeSubject.totalHeld) * 100}%`,
                           }}
@@ -287,21 +292,21 @@ function SubjectsContent() {
                         />
                       </>
                     ) : (
-                      <div className="bg-muted h-full w-full" />
+                      <div className="bg-slate-200 h-full w-full rounded-full" />
                     )}
                   </div>
                 </div>
 
                 {/* Direct Link to Records */}
-                <div className="pt-4 border-t border-border/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <span className="text-xs text-muted-foreground">
-                    View each individual lecture date, time, and status for this course:
+                <div className="pt-4 border-t border-slate-200/50 dark:border-slate-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    View each individual lecture date, period, and status:
                   </span>
                   <Link
                     href={`/attendance?subjectId=${activeSubject.subjectId}`}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold rounded-xl border border-border transition shrink-0"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all shrink-0"
                   >
-                    <CalendarDays className="h-3.5 w-3.5 text-blue-600" />
+                    <CalendarDays className="h-3.5 w-3.5" />
                     <span>View Course Log</span>
                     <ArrowRight className="h-3 w-3" />
                   </Link>
@@ -319,9 +324,11 @@ export default function SubjectsPage() {
   return (
     <Suspense
       fallback={
-        <div className="py-20 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-          <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
-          <span className="text-xs">Loading course metrics...</span>
+        <div className="py-24 flex flex-col items-center justify-center gap-3">
+          <div className="h-12 w-12 rounded-2xl glass-panel flex items-center justify-center">
+            <RefreshCw className="h-6 w-6 animate-spin text-indigo-600" />
+          </div>
+          <span className="text-xs font-semibold text-slate-400">Loading course analytics...</span>
         </div>
       }
     >
