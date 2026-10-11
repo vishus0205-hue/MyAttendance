@@ -20,7 +20,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`h-full ${plusJakarta.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`h-full ${plusJakarta.variable}`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const theme = localStorage.getItem('theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (theme === 'dark' || (!theme && prefersDark)) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
       <body className="font-sans min-h-full flex flex-col bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased relative selection:bg-indigo-500/20 selection:text-indigo-600">
         {/* Ambient Glowing Background Orbs for Dynamic Glassmorphism Refraction */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">

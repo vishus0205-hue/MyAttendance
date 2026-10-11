@@ -15,6 +15,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -30,8 +32,27 @@ export function Navbar() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [isDark, setIsDark] = useState(false);
 
   const isAuthPage = pathname === "/login" || pathname === "/register";
+
+  useEffect(() => {
+    // Sync theme state with <html> tag
+    const isDarkMode = document.documentElement.classList.contains("dark");
+    setIsDark(isDarkMode);
+  }, []);
+
+  const toggleTheme = () => {
+    const nextIsDark = !isDark;
+    setIsDark(nextIsDark);
+    if (nextIsDark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
 
   useEffect(() => {
     if (isAuthPage) {
@@ -199,7 +220,21 @@ export function Navbar() {
           )}
 
           {/* Actions & Profile */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
+            {/* Small Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-slate-800/60 border border-slate-200/50 dark:border-slate-800/50 transition-all hover:scale-105 active:scale-95 shadow-sm"
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              aria-label="Toggle Theme"
+            >
+              {isDark ? (
+                <Sun className="h-4 w-4 text-amber-400 transition-transform hover:rotate-45" />
+              ) : (
+                <Moon className="h-4 w-4 text-indigo-600 dark:text-indigo-400 transition-transform -rotate-12 hover:rotate-0" />
+              )}
+            </button>
+
             {!isAuthPage && user ? (
               <>
                 {/* Glowing Sync Button */}
