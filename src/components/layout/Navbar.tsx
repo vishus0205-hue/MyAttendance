@@ -33,8 +33,14 @@ export function Navbar() {
   const isAuthPage = pathname === "/login" || pathname === "/register";
 
   useEffect(() => {
-    fetchUser();
-  }, [pathname]);
+    if (isAuthPage) {
+      setUser(null);
+      return;
+    }
+    if (!user) {
+      fetchUser();
+    }
+  }, [pathname, isAuthPage, user]);
 
   const fetchUser = async () => {
     try {

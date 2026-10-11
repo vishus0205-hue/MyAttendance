@@ -3,6 +3,9 @@ import crypto from "crypto";
 export interface SessionPayload {
   userId: string;
   email: string;
+  name?: string;
+  studentId?: string | null;
+  targetThreshold?: number;
   createdAt: number;
 }
 

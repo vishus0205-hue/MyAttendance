@@ -11,38 +11,36 @@ export async function GET() {
   try {
     const user = await getAuthenticatedUser();
 
-    // 1. Fetch portal connection details
-    const portalConn = await prisma.portalConnection.findUnique({
-      where: { userId: user.id },
-      select: {
-        portalUrl: true,
-        connectionStatus: true,
-        autoSyncEnabled: true,
-        lastSuccessfulSyncAt: true,
-        lastSyncAttemptAt: true,
-        lastSyncError: true,
-      },
-    });
-
-    // 2. Fetch all subjects belonging to this user
-    const subjects = await prisma.subject.findMany({
-      where: { userId: user.id },
-      orderBy: { name: "asc" },
-    });
-
-    // 3. Fetch all attendance records
-    const records = await prisma.attendanceRecord.findMany({
-      where: { userId: user.id },
-      select: {
-        id: true,
-        subjectId: true,
-        status: true,
-        attendanceDate: true,
-        periodNumber: true,
-        source: true,
-      },
-      orderBy: { attendanceDate: "desc" },
-    });
+    // Concurrently fetch portal connection, subjects, and records in a single database roundtrip
+    const [portalConn, subjects, records] = await Promise.all([
+      prisma.portalConnection.findUnique({
+        where: { userId: user.id },
+        select: {
+          portalUrl: true,
+          connectionStatus: true,
+          autoSyncEnabled: true,
+          lastSuccessfulSyncAt: true,
+          lastSyncAttemptAt: true,
+          lastSyncError: true,
+        },
+      }),
+      prisma.subject.findMany({
+        where: { userId: user.id },
+        orderBy: { name: "asc" },
+      }),
+      prisma.attendanceRecord.findMany({
+        where: { userId: user.id },
+        select: {
+          id: true,
+          subjectId: true,
+          status: true,
+          attendanceDate: true,
+          periodNumber: true,
+          source: true,
+        },
+        orderBy: { attendanceDate: "desc" },
+      }),
+    ]);
 
     // 4. Calculate source breakdown (Live vs Demo)
     let demoCount = 0;
