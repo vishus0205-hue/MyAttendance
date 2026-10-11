@@ -250,3 +250,39 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.6);
 }
+
+/* Mobile-Specific UX Utilities */
+@layer utilities {
+  /* Hide scrollbar for clean horizontal swipe pills on mobile */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Safe Area Insets for modern bezel-less phones */
+  .pb-safe {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+  .pt-safe {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+}
+
+/* Prevent tap highlight flicker on touch screens */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent unwanted zoom-in on focus on iOS Safari while preserving readability */
+@media screen and (max-width: 640px) {
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

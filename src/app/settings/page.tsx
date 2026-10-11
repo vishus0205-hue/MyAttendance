@@ -307,7 +307,7 @@ function SettingsForm() {
       {/* Main Settings Form */}
       <form onSubmit={handleSaveSettings} className="space-y-6">
         {/* 1. Academic Year, Semester & Report Parameters Card */}
-        <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/60 dark:border-white/10 shadow-xl shadow-black/[0.02] space-y-6">
+        <div className="glass-panel p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/60 dark:border-white/10 shadow-xl shadow-black/[0.02] space-y-5 sm:space-y-6">
           <div className="flex items-center gap-2.5 pb-4 border-b border-slate-200/50 dark:border-slate-800/50">
             <div className="p-2 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
               <Layers className="h-5 w-5" />
@@ -400,7 +400,7 @@ function SettingsForm() {
         </div>
 
         {/* 2. Portal Credentials Card */}
-        <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/60 dark:border-white/10 shadow-xl shadow-black/[0.02] space-y-6">
+        <div className="glass-panel p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/60 dark:border-white/10 shadow-xl shadow-black/[0.02] space-y-5 sm:space-y-6">
           <div className="flex items-center gap-2.5 pb-4 border-b border-slate-200/50 dark:border-slate-800/50">
             <div className="p-2 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400">
               <Shield className="h-5 w-5" />
@@ -495,11 +495,11 @@ function SettingsForm() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-4 border-t border-slate-200/50 dark:border-slate-800/50">
+          <div className="flex flex-col sm:flex-row justify-end items-center gap-2.5 sm:gap-3 pt-4 border-t border-slate-200/50 dark:border-slate-800/50">
             <button
               type="submit"
               disabled={saving || syncing}
-              className="w-full sm:w-auto px-5 py-2.5 glass-pill hover:bg-white/70 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition active:scale-95 disabled:opacity-50"
+              className="w-full sm:w-auto px-5 py-3 sm:py-2.5 glass-pill hover:bg-white/70 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition active:scale-95 disabled:opacity-50"
             >
               {saving && !syncing ? "Saving..." : "Save Settings Only"}
             </button>
@@ -507,7 +507,7 @@ function SettingsForm() {
               type="button"
               onClick={handleSaveAndSync}
               disabled={saving || syncing}
-              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-6 py-3 sm:py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {syncing ? (
                 <>
@@ -526,7 +526,7 @@ function SettingsForm() {
       </form>
 
       {/* 3. Manual CSV Import Fallback */}
-      <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/60 dark:border-white/10 shadow-xl shadow-black/[0.02] space-y-4">
+      <div className="glass-panel p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/60 dark:border-white/10 shadow-xl shadow-black/[0.02] space-y-4">
         <div className="flex items-center gap-2.5 pb-4 border-b border-slate-200/50 dark:border-slate-800/50">
           <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
             <FileText className="h-5 w-5" />

@@ -49,9 +49,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[82vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[80vh] flex items-center justify-center py-6 sm:py-12 px-3 sm:px-6 lg:px-8 relative">
       {/* Centered Glassmorphic Authentication Card */}
-      <div className="max-w-md w-full space-y-7 glass-panel p-8 sm:p-10 rounded-3xl shadow-2xl shadow-indigo-500/10 border border-white/70 dark:border-white/10 relative z-10 backdrop-blur-2xl">
+      <div className="max-w-md w-full space-y-6 sm:space-y-7 glass-panel p-6 sm:p-10 rounded-2xl sm:rounded-3xl shadow-2xl shadow-indigo-500/10 border border-white/70 dark:border-white/10 relative z-10 backdrop-blur-2xl">
         <div className="text-center">
           <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/25 mb-4 hover:scale-105 transition-transform">
             <GraduationCap className="h-7 w-7" />

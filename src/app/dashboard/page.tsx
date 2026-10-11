@@ -223,15 +223,15 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 2. Top Glass KPI Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 2. Top Glass KPI Metric Cards (2x2 grid on phones, 4-col on desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {/* Overall Percentage Card */}
-        <div className="glass-card-interactive p-6 rounded-3xl relative overflow-hidden flex flex-col justify-between">
+        <div className="glass-card-interactive p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl relative overflow-hidden flex flex-col justify-between">
           <div>
-            <div className="flex justify-between items-start">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Overall Attendance</span>
+            <div className="flex justify-between items-start gap-1">
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider line-clamp-1">Overall</span>
               <span
-                className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                className={`px-1.5 sm:px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider shrink-0 ${
                   dataSources.totalRecords === 0
                     ? "bg-slate-200/50 dark:bg-slate-800/50 text-slate-500"
                     : isHealthy
@@ -239,23 +239,23 @@ export default function DashboardPage() {
                     : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30"
                 }`}
               >
-                {dataSources.totalRecords === 0 ? "No Data" : isHealthy ? "On Track" : "Cutoff Alert"}
+                {dataSources.totalRecords === 0 ? "None" : isHealthy ? "Safe" : "Alert"}
               </span>
             </div>
-            <div className="mt-4 flex items-baseline gap-2">
+            <div className="mt-2.5 sm:mt-4 flex items-baseline gap-1.5 sm:gap-2">
               <span
-                className={`text-4xl sm:text-5xl font-black tracking-tight ${
+                className={`text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight ${
                   isHealthy ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
                 }`}
               >
                 {overall.percentage}%
               </span>
-              <span className="text-xs text-slate-400 font-semibold">/ {user.targetThreshold}% target</span>
+              <span className="text-[10px] sm:text-xs text-slate-400 font-semibold truncate">/ {user.targetThreshold}%</span>
             </div>
           </div>
 
-          <div className="mt-5 space-y-2">
-            <div className="w-full bg-slate-200/50 dark:bg-slate-800/50 rounded-full h-2.5 overflow-hidden p-0.5 border border-white/20">
+          <div className="mt-3 sm:mt-5 space-y-1.5 sm:space-y-2">
+            <div className="w-full bg-slate-200/50 dark:bg-slate-800/50 rounded-full h-2 sm:h-2.5 overflow-hidden p-0.5 border border-white/20">
               <div
                 className={`h-full rounded-full transition-all duration-700 shadow-sm ${
                   isHealthy
@@ -265,56 +265,53 @@ export default function DashboardPage() {
                 style={{ width: `${Math.min(100, overall.percentage)}%` }}
               />
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex justify-between">
-              <span>Required Cutoff: {user.targetThreshold}%</span>
-              <span>{overall.percentage >= user.targetThreshold ? "Safe" : "Deficit"}</span>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium flex justify-between">
+              <span>Cutoff: {user.targetThreshold}%</span>
+              <span className="font-bold">{overall.percentage >= user.targetThreshold ? "Safe" : "Deficit"}</span>
             </p>
           </div>
         </div>
 
         {/* Classes Attended Card */}
-        <div className="glass-card-interactive p-6 rounded-3xl flex flex-col justify-between">
+        <div className="glass-card-interactive p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl flex flex-col justify-between">
           <div>
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Classes Attended</span>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">{overall.totalAttended}</span>
-              <span className="text-sm font-semibold text-slate-400">/ {overall.totalHeld} held</span>
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider line-clamp-1">Attended</span>
+            <div className="mt-2.5 sm:mt-4 flex items-baseline gap-1.5 sm:gap-2">
+              <span className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight">{overall.totalAttended}</span>
+              <span className="text-[10px] sm:text-sm font-semibold text-slate-400 truncate">/ {overall.totalHeld} held</span>
             </div>
           </div>
-          <div className="mt-5 pt-3 border-t border-slate-200/40 dark:border-slate-800/40 flex items-center justify-between text-xs font-semibold">
-            <span className="text-emerald-600 dark:text-emerald-400">{overall.presentCount} Present</span>
-            <span className="text-slate-300 dark:text-slate-700">•</span>
-            <span className="text-blue-600 dark:text-blue-400">{overall.onDutyCount} On Duty</span>
-            <span className="text-slate-300 dark:text-slate-700">•</span>
+          <div className="mt-3 sm:mt-5 pt-2 sm:pt-3 border-t border-slate-200/40 dark:border-slate-800/40 flex items-center justify-between text-[10px] sm:text-xs font-semibold">
+            <span className="text-emerald-600 dark:text-emerald-400">{overall.presentCount} Attended</span>
             <span className="text-rose-500">{overall.absentCount} Missed</span>
           </div>
         </div>
 
         {/* Lectures Missed Card */}
-        <div className="glass-card-interactive p-6 rounded-3xl flex flex-col justify-between">
+        <div className="glass-card-interactive p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl flex flex-col justify-between">
           <div>
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Lectures Missed</span>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-4xl sm:text-5xl font-black text-red-600 dark:text-red-400 tracking-tight">{overall.absentCount}</span>
-              <span className="text-xs text-slate-400 font-semibold">sessions absent</span>
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider line-clamp-1">Missed</span>
+            <div className="mt-2.5 sm:mt-4 flex items-baseline gap-1.5 sm:gap-2">
+              <span className="text-2xl sm:text-4xl lg:text-5xl font-black text-red-600 dark:text-red-400 tracking-tight">{overall.absentCount}</span>
+              <span className="text-[10px] sm:text-xs text-slate-400 font-semibold truncate">sessions</span>
             </div>
           </div>
-          <div className="mt-5 pt-3 border-t border-slate-200/40 dark:border-slate-800/40">
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+          <div className="mt-3 sm:mt-5 pt-2 sm:pt-3 border-t border-slate-200/40 dark:border-slate-800/40">
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
               {overall.totalHeld > 0
-                ? `${((overall.absentCount / overall.totalHeld) * 100).toFixed(1)}% of all scheduled lectures missed till date.`
-                : "No lectures recorded yet."}
+                ? `${((overall.absentCount / overall.totalHeld) * 100).toFixed(1)}% missed`
+                : "No lectures"}
             </p>
           </div>
         </div>
 
         {/* Courses Meeting Cutoff Card */}
-        <div className="glass-card-interactive p-6 rounded-3xl flex flex-col justify-between">
+        <div className="glass-card-interactive p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl flex flex-col justify-between">
           <div>
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Meeting Cutoff</span>
-            <div className="mt-4 flex items-baseline gap-2">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider line-clamp-1">Cutoff Status</span>
+            <div className="mt-2.5 sm:mt-4 flex items-baseline gap-1.5 sm:gap-2">
               <span
-                className={`text-4xl sm:text-5xl font-black tracking-tight ${
+                className={`text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight ${
                   overall.subjectsBelowThreshold > 0
                     ? "text-amber-600 dark:text-amber-400"
                     : "text-emerald-600 dark:text-emerald-400"
@@ -322,14 +319,14 @@ export default function DashboardPage() {
               >
                 {overall.subjectsCount - overall.subjectsBelowThreshold}
               </span>
-              <span className="text-xs text-slate-400 font-semibold">of {overall.subjectsCount} courses &ge; {user.targetThreshold}%</span>
+              <span className="text-[10px] sm:text-xs text-slate-400 font-semibold truncate">of {overall.subjectsCount} safe</span>
             </div>
           </div>
-          <div className="mt-5 pt-3 border-t border-slate-200/40 dark:border-slate-800/40">
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+          <div className="mt-3 sm:mt-5 pt-2 sm:pt-3 border-t border-slate-200/40 dark:border-slate-800/40">
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
               {overall.subjectsBelowThreshold === 0
-                ? `All ${overall.subjectsCount} courses are safely above cutoff.`
-                : `${overall.subjectsBelowThreshold} course currently in critical deficit.`}
+                ? "All courses safe"
+                : `${overall.subjectsBelowThreshold} course in deficit`}
             </p>
           </div>
         </div>
@@ -365,25 +362,25 @@ export default function DashboardPage() {
       )}
 
       {/* 4. Glass Attendance Trend Chart */}
-      <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/60 dark:border-white/10 shadow-xl shadow-black/[0.02]">
-        <div className="flex items-center justify-between mb-5">
+      <div className="glass-panel p-4 sm:p-7 rounded-2xl sm:rounded-3xl border border-white/60 dark:border-white/10 shadow-xl shadow-black/[0.02]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 mb-4 sm:mb-5">
           <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
-              <div className="p-1.5 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25">
-                <TrendingUp className="h-4 w-4" />
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <div className="p-1 sm:p-1.5 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25 shrink-0">
+                <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </div>
               <span>Attendance Velocity Trend</span>
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Weekly performance trajectory against your target threshold</p>
+            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">Weekly performance trajectory against your target threshold</p>
           </div>
-          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 glass-pill px-3 py-1 rounded-xl border border-emerald-500/30">
+          <span className="text-[11px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-400 glass-pill px-2.5 py-1 rounded-xl border border-emerald-500/30 self-start sm:self-auto">
             Current: {overall.percentage}%
           </span>
         </div>
 
-        <div className="h-60 w-full">
+        <div className="h-44 sm:h-60 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={trendData} margin={{ top: 10, right: 8, left: -26, bottom: 0 }}>
               <defs>
                 <linearGradient id="attendanceGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#6366f1" stopOpacity={0.35} />
@@ -391,8 +388,8 @@ export default function DashboardPage() {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.15)" />
-              <XAxis dataKey="week" stroke="#94a3b8" fontSize={11} tickLine={false} />
-              <YAxis domain={[50, 100]} stroke="#94a3b8" fontSize={11} tickLine={false} />
+              <XAxis dataKey="week" stroke="#94a3b8" fontSize={10} tickLine={false} />
+              <YAxis domain={[50, 100]} stroke="#94a3b8" fontSize={10} tickLine={false} />
               <Tooltip
                 contentStyle={{
                   backgroundColor: "rgba(15, 23, 42, 0.85)",
@@ -400,7 +397,7 @@ export default function DashboardPage() {
                   borderColor: "rgba(255, 255, 255, 0.15)",
                   borderRadius: "1rem",
                   color: "#fff",
-                  fontSize: "12px",
+                  fontSize: "11px",
                   boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)",
                 }}
                 formatter={(val) => [`${val}%`, "Attendance"]}
@@ -409,7 +406,7 @@ export default function DashboardPage() {
                 type="monotone"
                 dataKey="attendance"
                 stroke="#6366f1"
-                strokeWidth={3}
+                strokeWidth={2.5}
                 fillOpacity={1}
                 fill="url(#attendanceGradient)"
               />
@@ -420,19 +417,19 @@ export default function DashboardPage() {
 
       {/* 5. Subject Cards Grid */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
-            <div className="p-1.5 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25">
-              <BookOpen className="h-4 w-4" />
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <div className="p-1 sm:p-1.5 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25 shrink-0">
+              <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </div>
             <span>Enrolled Academic Courses</span>
           </h3>
           <Link
             href="/subjects"
-            className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center gap-1.5 glass-pill px-3 py-1.5 rounded-xl hover:scale-105 transition-transform"
+            className="text-[11px] sm:text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center gap-1 glass-pill px-2.5 py-1 rounded-xl hover:scale-105 transition-transform"
           >
-            <span>Detailed Breakdown</span>
-            <ArrowRight className="h-3.5 w-3.5" />
+            <span>Breakdown</span>
+            <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           </Link>
         </div>
 

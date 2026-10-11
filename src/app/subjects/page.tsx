@@ -103,60 +103,89 @@ function SubjectsContent() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column: Subjects List */}
-          <div className="space-y-3">
-            <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Enrolled Courses ({subjects.length})
-            </h2>
-
-            <div className="space-y-2.5">
-              {subjects.map((sub) => {
-                const isSelected = sub.subjectId === selectedSubjectId;
-                const isHealthy = sub.percentage >= targetPercent;
-                return (
-                  <button
-                    key={sub.subjectId}
-                    onClick={() => setSelectedSubjectId(sub.subjectId)}
-                    className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
-                      isSelected
-                        ? "glass-panel border-indigo-500/70 dark:border-indigo-400/60 shadow-lg shadow-indigo-500/10 ring-2 ring-indigo-500/20 translate-x-1"
-                        : "glass-card hover:translate-x-1"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 glass-pill px-2 py-0.5 rounded-lg border border-white/40 dark:border-white/10 uppercase tracking-wider font-mono">
-                          {sub.subjectCode || "CORE"}
-                        </span>
-                        <h3 className="font-bold text-sm text-slate-900 dark:text-white mt-1.5 leading-snug">{sub.subjectName}</h3>
-                      </div>
-                      <span
-                        className={`text-base font-black ${
-                          isHealthy ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
-                        }`}
-                      >
-                        {sub.percentage}%
-                      </span>
-                    </div>
-
-                    <div className="mt-3 flex justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
-                      <span>{sub.totalAttended} / {sub.totalHeld} attended</span>
-                      <span className={isHealthy ? "text-emerald-600 font-bold" : "text-rose-600 font-bold"}>
-                        {isHealthy ? "Above Cutoff" : "Below Cutoff"}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+        <div className="space-y-4 lg:space-y-0">
+          {/* Mobile Horizontal Course Selector (< lg) */}
+          <div className="flex lg:hidden overflow-x-auto pb-1 gap-2 no-scrollbar">
+            {subjects.map((sub) => {
+              const isSelected = sub.subjectId === selectedSubjectId;
+              const isHealthy = sub.percentage >= targetPercent;
+              return (
+                <button
+                  key={sub.subjectId}
+                  onClick={() => setSelectedSubjectId(sub.subjectId)}
+                  className={`shrink-0 px-3.5 py-2 rounded-xl text-left border transition-all text-xs ${
+                    isSelected
+                      ? "glass-panel border-indigo-500 shadow-md ring-1 ring-indigo-500/30 bg-indigo-50/70 dark:bg-indigo-950/50"
+                      : "glass-card opacity-80"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 text-xs truncate max-w-[120px]">
+                      {sub.subjectCode || sub.subjectName}
+                    </span>
+                    <span className={`font-black text-xs ${isHealthy ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                      {sub.percentage}%
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Right Column: Detailed Breakdown Till Now */}
-          {activeSubject && (
-            <div className="lg:col-span-2 space-y-6">
-              {/* Active Subject Detail Card */}
-              <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/60 dark:border-white/10 shadow-xl space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Desktop Left Column: Full Subjects List (hidden on mobile, replaced by horizontal selector above) */}
+            <div className="hidden lg:block space-y-3">
+              <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Enrolled Courses ({subjects.length})
+              </h2>
+
+              <div className="space-y-2.5">
+                {subjects.map((sub) => {
+                  const isSelected = sub.subjectId === selectedSubjectId;
+                  const isHealthy = sub.percentage >= targetPercent;
+                  return (
+                    <button
+                      key={sub.subjectId}
+                      onClick={() => setSelectedSubjectId(sub.subjectId)}
+                      className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
+                        isSelected
+                          ? "glass-panel border-indigo-500/70 dark:border-indigo-400/60 shadow-lg shadow-indigo-500/10 ring-2 ring-indigo-500/20 translate-x-1"
+                          : "glass-card hover:translate-x-1"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 glass-pill px-2 py-0.5 rounded-lg border border-white/40 dark:border-white/10 uppercase tracking-wider font-mono">
+                            {sub.subjectCode || "CORE"}
+                          </span>
+                          <h3 className="font-bold text-sm text-slate-900 dark:text-white mt-1.5 leading-snug">{sub.subjectName}</h3>
+                        </div>
+                        <span
+                          className={`text-base font-black ${
+                            isHealthy ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          {sub.percentage}%
+                        </span>
+                      </div>
+
+                      <div className="mt-3 flex justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        <span>{sub.totalAttended} / {sub.totalHeld} attended</span>
+                        <span className={isHealthy ? "text-emerald-600 font-bold" : "text-rose-600 font-bold"}>
+                          {isHealthy ? "Above Cutoff" : "Below Cutoff"}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Right Column: Detailed Breakdown Till Now */}
+            {activeSubject && (
+              <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+                {/* Active Subject Detail Card */}
+                <div className="glass-panel p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/60 dark:border-white/10 shadow-xl space-y-4 sm:space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-200/50 dark:border-slate-800/50">
                   <div>
                     <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 glass-pill px-3 py-1 rounded-xl border border-indigo-500/30">
@@ -211,49 +240,49 @@ function SubjectsContent() {
                     <span>Conducted Session Breakdown</span>
                   </h3>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <div className="p-4 glass-card rounded-2xl">
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Conducted</span>
-                      <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{activeSubject.totalHeld}</p>
-                      <span className="text-[10px] text-slate-400">Total lecture slots</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+                    <div className="p-3 sm:p-4 glass-card rounded-xl sm:rounded-2xl">
+                      <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Conducted</span>
+                      <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-0.5 sm:mt-1">{activeSubject.totalHeld}</p>
+                      <span className="text-[9px] sm:text-[10px] text-slate-400">Total lecture slots</span>
                     </div>
 
-                    <div className="p-4 glass-card rounded-2xl">
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Total Attended</span>
-                      <p className="text-2xl font-black text-emerald-600 mt-1">{activeSubject.totalAttended}</p>
-                      <span className="text-[10px] text-slate-400">Present + On Duty</span>
+                    <div className="p-3 sm:p-4 glass-card rounded-xl sm:rounded-2xl">
+                      <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Total Attended</span>
+                      <p className="text-xl sm:text-2xl font-black text-emerald-600 mt-0.5 sm:mt-1">{activeSubject.totalAttended}</p>
+                      <span className="text-[9px] sm:text-[10px] text-slate-400">Present + On Duty</span>
                     </div>
 
-                    <div className="p-4 glass-card rounded-2xl">
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Present</span>
-                      <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{activeSubject.presentCount}</p>
-                      <span className="text-[10px] text-slate-400">
+                    <div className="p-3 sm:p-4 glass-card rounded-xl sm:rounded-2xl">
+                      <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Present</span>
+                      <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-0.5 sm:mt-1">{activeSubject.presentCount}</p>
+                      <span className="text-[9px] sm:text-[10px] text-slate-400">
                         {activeSubject.totalHeld > 0
                           ? `${((activeSubject.presentCount / activeSubject.totalHeld) * 100).toFixed(1)}% of total`
                           : "0%"}
                       </span>
                     </div>
 
-                    <div className="p-4 glass-card rounded-2xl">
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Absent / Missed</span>
-                      <p className="text-2xl font-black text-rose-600 mt-1">{activeSubject.absentCount}</p>
-                      <span className="text-[10px] text-slate-400">
+                    <div className="p-3 sm:p-4 glass-card rounded-xl sm:rounded-2xl">
+                      <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Absent / Missed</span>
+                      <p className="text-xl sm:text-2xl font-black text-rose-600 mt-0.5 sm:mt-1">{activeSubject.absentCount}</p>
+                      <span className="text-[9px] sm:text-[10px] text-slate-400">
                         {activeSubject.totalHeld > 0
                           ? `${((activeSubject.absentCount / activeSubject.totalHeld) * 100).toFixed(1)}% of total`
                           : "0%"}
                       </span>
                     </div>
 
-                    <div className="p-4 glass-card rounded-2xl">
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">On Duty (OD)</span>
-                      <p className="text-2xl font-black text-blue-600 mt-1">{activeSubject.onDutyCount}</p>
-                      <span className="text-[10px] text-slate-400">College approved</span>
+                    <div className="p-3 sm:p-4 glass-card rounded-xl sm:rounded-2xl">
+                      <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-semibold">On Duty (OD)</span>
+                      <p className="text-xl sm:text-2xl font-black text-blue-600 mt-0.5 sm:mt-1">{activeSubject.onDutyCount}</p>
+                      <span className="text-[9px] sm:text-[10px] text-slate-400">College approved</span>
                     </div>
 
-                    <div className="p-4 glass-card rounded-2xl">
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Medical Leave</span>
-                      <p className="text-2xl font-black text-purple-600 mt-1">{activeSubject.medicalLeaveCount}</p>
-                      <span className="text-[10px] text-slate-400">Excused absence</span>
+                    <div className="p-3 sm:p-4 glass-card rounded-xl sm:rounded-2xl">
+                      <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Medical Leave</span>
+                      <p className="text-xl sm:text-2xl font-black text-purple-600 mt-0.5 sm:mt-1">{activeSubject.medicalLeaveCount}</p>
+                      <span className="text-[9px] sm:text-[10px] text-slate-400">Excused absence</span>
                     </div>
                   </div>
                 </div>
@@ -315,9 +344,10 @@ function SubjectsContent() {
             </div>
           )}
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
 }
 
 export default function SubjectsPage() {

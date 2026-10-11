@@ -149,7 +149,7 @@ export default function AttendanceLogPage() {
       </div>
 
       {/* Filter and Search Toolbar */}
-      <div className="glass-panel p-4 rounded-3xl flex flex-col md:flex-row items-stretch md:items-center gap-3">
+      <div className="glass-panel p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl flex flex-col md:flex-row items-stretch md:items-center gap-2.5 sm:gap-3">
         {/* Search */}
         <form onSubmit={handleSearchSubmit} className="flex-1 relative">
           <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -158,51 +158,53 @@ export default function AttendanceLogPage() {
             placeholder="Search by subject name or code..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 glass-input rounded-2xl text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            className="w-full pl-10 pr-4 py-2.5 glass-input rounded-xl sm:rounded-2xl text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
           />
         </form>
 
-        {/* Subject Filter */}
-        <div className="flex items-center gap-2">
-          <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <select
-            value={selectedSubject}
-            onChange={(e) => {
-              setSelectedSubject(e.target.value);
-              setPage(1);
-            }}
-            className="glass-input rounded-2xl py-2.5 px-3.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-          >
-            <option value="">All Subjects</option>
-            {subjects.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Filter Dropdowns (2 columns side-by-side on phones) */}
+        <div className="grid grid-cols-2 sm:flex items-center gap-2">
+          {/* Subject Filter */}
+          <div className="relative">
+            <select
+              value={selectedSubject}
+              onChange={(e) => {
+                setSelectedSubject(e.target.value);
+                setPage(1);
+              }}
+              className="w-full glass-input rounded-xl sm:rounded-2xl py-2 px-3 sm:px-3.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 truncate"
+            >
+              <option value="">All Subjects</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* Status Filter */}
-        <div>
-          <select
-            value={selectedStatus}
-            onChange={(e) => {
-              setSelectedStatus(e.target.value);
-              setPage(1);
-            }}
-            className="glass-input rounded-2xl py-2.5 px-3.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-          >
-            <option value="">All Statuses</option>
-            <option value="PRESENT">Present</option>
-            <option value="ABSENT">Absent</option>
-            <option value="ON_DUTY">On Duty</option>
-            <option value="MEDICAL_LEAVE">Medical Leave</option>
-          </select>
+          {/* Status Filter */}
+          <div className="relative">
+            <select
+              value={selectedStatus}
+              onChange={(e) => {
+                setSelectedStatus(e.target.value);
+                setPage(1);
+              }}
+              className="w-full glass-input rounded-xl sm:rounded-2xl py-2 px-3 sm:px-3.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            >
+              <option value="">All Statuses</option>
+              <option value="PRESENT">Present</option>
+              <option value="ABSENT">Absent</option>
+              <option value="ON_DUTY">On Duty</option>
+              <option value="MEDICAL_LEAVE">Medical Leave</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Table Container */}
-      <div className="glass-panel rounded-3xl overflow-hidden">
+      {/* Records Container: Mobile Cards List (< sm) + Desktop Table (>= sm) */}
+      <div className="glass-panel rounded-2xl sm:rounded-3xl overflow-hidden">
         {loading ? (
           <div className="py-24 flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <RefreshCw className="h-6 w-6 animate-spin text-blue-500" />
@@ -215,50 +217,94 @@ export default function AttendanceLogPage() {
             <p className="text-xs text-muted-foreground mt-1">Try adjusting your filters or search terms.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-border/40 bg-muted/20 text-muted-foreground font-semibold">
-                  <th className="py-3.5 px-5">Date</th>
-                  <th className="py-3.5 px-5">Day</th>
-                  <th className="py-3.5 px-5">Subject</th>
-                  <th className="py-3.5 px-5">Period</th>
-                  <th className="py-3.5 px-5">Status</th>
-                  <th className="py-3.5 px-5">Source</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/20">
-                {records.map((r) => {
-                  const dateStr = new Date(r.attendanceDate).toISOString().split("T")[0];
-                  return (
-                    <tr key={r.id} className="hover:bg-white/5 dark:hover:bg-white/[0.03] transition-colors">
-                      <td className="py-3.5 px-5 font-mono font-medium text-foreground">{dateStr}</td>
-                      <td className="py-3.5 px-5 text-muted-foreground">{r.dayOfWeek}</td>
-                      <td className="py-3.5 px-5">
-                        <div className="font-semibold text-foreground">{r.subject?.name || "Unassigned"}</div>
+          <>
+            {/* Mobile Cards List (< sm) */}
+            <div className="block sm:hidden divide-y divide-border/20">
+              {records.map((r) => {
+                const dateStr = new Date(r.attendanceDate).toISOString().split("T")[0];
+                return (
+                  <div key={r.id} className="p-3.5 space-y-2 hover:bg-white/5 transition-colors">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-foreground">
+                        <span>{dateStr}</span>
+                        <span className="text-[11px] text-muted-foreground font-normal">({r.dayOfWeek.slice(0, 3)})</span>
+                      </div>
+                      {getStatusBadge(r.status)}
+                    </div>
+
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs text-foreground line-clamp-1">{r.subject?.name || "Unassigned"}</div>
                         {r.subject?.code && (
-                          <div className="text-[10px] text-muted-foreground/80 font-mono">{r.subject.code}</div>
+                          <div className="text-[10px] text-muted-foreground font-mono">{r.subject.code}</div>
                         )}
-                      </td>
-                      <td className="py-3.5 px-5 font-medium text-muted-foreground">Period {r.periodNumber || 1}</td>
-                      <td className="py-3.5 px-5">{getStatusBadge(r.status)}</td>
-                      <td className="py-3.5 px-5">
+                      </div>
+                      <div className="shrink-0 flex items-center gap-1.5">
+                        <span className="text-[10px] text-muted-foreground font-medium glass-pill px-2 py-0.5 rounded-lg">
+                          Period {r.periodNumber || 1}
+                        </span>
                         <span
-                          className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border ${
+                          className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold border ${
                             r.source === "PORTAL_SYNC"
                               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                               : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                           }`}
                         >
-                          {r.source === "PORTAL_SYNC" ? "LIVE_PORTAL" : "DEMO_SEED"}
+                          {r.source === "PORTAL_SYNC" ? "LIVE" : "DEMO"}
                         </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop / Tablet Table View (>= sm) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-border/40 bg-muted/20 text-muted-foreground font-semibold">
+                    <th className="py-3.5 px-5">Date</th>
+                    <th className="py-3.5 px-5">Day</th>
+                    <th className="py-3.5 px-5">Subject</th>
+                    <th className="py-3.5 px-5">Period</th>
+                    <th className="py-3.5 px-5">Status</th>
+                    <th className="py-3.5 px-5">Source</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/20">
+                  {records.map((r) => {
+                    const dateStr = new Date(r.attendanceDate).toISOString().split("T")[0];
+                    return (
+                      <tr key={r.id} className="hover:bg-white/5 dark:hover:bg-white/[0.03] transition-colors">
+                        <td className="py-3.5 px-5 font-mono font-medium text-foreground">{dateStr}</td>
+                        <td className="py-3.5 px-5 text-muted-foreground">{r.dayOfWeek}</td>
+                        <td className="py-3.5 px-5">
+                          <div className="font-semibold text-foreground">{r.subject?.name || "Unassigned"}</div>
+                          {r.subject?.code && (
+                            <div className="text-[10px] text-muted-foreground/80 font-mono">{r.subject.code}</div>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-5 font-medium text-muted-foreground">Period {r.periodNumber || 1}</td>
+                        <td className="py-3.5 px-5">{getStatusBadge(r.status)}</td>
+                        <td className="py-3.5 px-5">
+                          <span
+                            className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border ${
+                              r.source === "PORTAL_SYNC"
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                                : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                            }`}
+                          >
+                            {r.source === "PORTAL_SYNC" ? "LIVE_PORTAL" : "DEMO_SEED"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {/* Pagination Footer */}

@@ -136,14 +136,14 @@ export default function CalendarPage() {
         {/* Calendar Grid (2 Cols on lg) */}
         <div className="lg:col-span-2 glass-panel p-5 sm:p-6 rounded-3xl space-y-4">
           {/* Day of Week Headers */}
-          <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs text-muted-foreground pb-2 border-b border-border/30">
-            <span>Sun</span>
-            <span>Mon</span>
-            <span>Tue</span>
-            <span>Wed</span>
-            <span>Thu</span>
-            <span>Fri</span>
-            <span>Sat</span>
+          <div className="grid grid-cols-7 gap-1 text-center font-bold text-[10px] sm:text-xs text-muted-foreground pb-2 border-b border-border/30">
+            <span><span className="hidden sm:inline">Sun</span><span className="sm:hidden">S</span></span>
+            <span><span className="hidden sm:inline">Mon</span><span className="sm:hidden">M</span></span>
+            <span><span className="hidden sm:inline">Tue</span><span className="sm:hidden">T</span></span>
+            <span><span className="hidden sm:inline">Wed</span><span className="sm:hidden">W</span></span>
+            <span><span className="hidden sm:inline">Thu</span><span className="sm:hidden">T</span></span>
+            <span><span className="hidden sm:inline">Fri</span><span className="sm:hidden">F</span></span>
+            <span><span className="hidden sm:inline">Sat</span><span className="sm:hidden">S</span></span>
           </div>
 
           {/* Month Slots Grid */}
@@ -153,10 +153,10 @@ export default function CalendarPage() {
               <span className="text-xs font-medium">Loading calendar schedule...</span>
             </div>
           ) : (
-            <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {calendarSlots.map((slot, index) => {
                 if (!slot.dayNum || !slot.dateStr) {
-                  return <div key={`empty-${index}`} className="h-20 sm:h-24 rounded-2xl bg-white/[0.02] border border-transparent opacity-30" />;
+                  return <div key={`empty-${index}`} className="h-14 sm:h-20 md:h-24 rounded-xl sm:rounded-2xl bg-white/[0.02] border border-transparent opacity-30" />;
                 }
 
                 const dayData = dayDataMap.get(slot.dateStr);
@@ -167,7 +167,7 @@ export default function CalendarPage() {
                     key={slot.dateStr}
                     onClick={() => dayData && setSelectedDay(dayData)}
                     disabled={!dayData}
-                    className={`h-20 sm:h-24 p-2.5 rounded-2xl border text-left flex flex-col justify-between transition-all ${
+                    className={`h-14 sm:h-20 md:h-24 p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl border text-left flex flex-col justify-between transition-all ${
                       isSelected
                         ? "border-blue-500/80 bg-blue-500/15 shadow-[0_0_15px_rgba(59,130,246,0.25)] ring-1 ring-blue-500"
                         : dayData
@@ -176,12 +176,12 @@ export default function CalendarPage() {
                     }`}
                   >
                     <div className="flex justify-between items-center w-full">
-                      <span className={`text-xs font-bold ${isSelected ? "text-blue-500 font-extrabold" : "text-foreground"}`}>
+                      <span className={`text-[10px] sm:text-xs font-bold ${isSelected ? "text-blue-500 font-extrabold" : "text-foreground"}`}>
                         {slot.dayNum}
                       </span>
                       {dayData && (
                         <span
-                          className={`h-2 w-2 rounded-full ring-2 ring-background ${
+                          className={`h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full ring-1 sm:ring-2 ring-background shrink-0 ${
                             dayData.dayStatus === "FULL"
                               ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                               : dayData.dayStatus === "PARTIAL"
@@ -195,18 +195,14 @@ export default function CalendarPage() {
                     </div>
 
                     {dayData ? (
-                      <div className="text-[10px] text-muted-foreground space-y-0.5">
-                        <div className="font-semibold text-foreground">
-                          {dayData.attendedCount + dayData.onDutyCount}/{dayData.totalPeriods} attended
+                      <div className="text-[9px] sm:text-[10px] text-muted-foreground space-y-0.5">
+                        <div className="font-semibold text-foreground truncate">
+                          <span className="sm:hidden">{dayData.attendedCount + dayData.onDutyCount}/{dayData.totalPeriods}</span>
+                          <span className="hidden sm:inline">{dayData.attendedCount + dayData.onDutyCount}/{dayData.totalPeriods} attended</span>
                         </div>
-                        {dayData.absentCount > 0 && (
-                          <div className="text-rose-500 dark:text-rose-400 font-bold">
-                            {dayData.absentCount} missed
-                          </div>
-                        )}
                       </div>
                     ) : (
-                      <div className="text-[10px] text-muted-foreground/50">No classes</div>
+                      <div className="text-[9px] text-muted-foreground/40 hidden sm:block">None</div>
                     )}
                   </button>
                 );
