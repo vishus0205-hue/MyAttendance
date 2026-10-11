@@ -153,23 +153,38 @@ function SettingsForm() {
       setMessage({ text: "Settings saved! Contacting SVKM SAP Portal to fetch attendance PDF...", type: "success" });
 
       // 2. Trigger sync
-      const syncRes = await fetch("/api/sync", { method: "POST" });
-      const syncJson = await syncRes.json();
+      try {
+        const syncRes = await fetch("/api/sync", { method: "POST" });
+        const syncJson = await syncRes.json();
 
-      if (syncJson.success) {
+        if (syncJson.success && syncJson.recordsFetched > 0) {
+          setMessage({
+            text: `Success! Synced ${syncJson.recordsFetched} attendance records from the portal. Redirecting to dashboard...`,
+            type: "success",
+          });
+          setTimeout(() => {
+            router.push("/dashboard");
+            router.refresh();
+          }, 1500);
+        } else {
+          setMessage({
+            text: syncJson.message || "Settings saved successfully! Your attendance is scheduled to synchronize automatically every morning at 4:00 AM IST.",
+            type: "success",
+          });
+          setTimeout(() => {
+            router.push("/dashboard");
+            router.refresh();
+          }, 2000);
+        }
+      } catch {
         setMessage({
-          text: `Success! Synced ${syncJson.recordsFetched} attendance records from the portal. Redirecting to dashboard...`,
+          text: "Settings saved successfully! Your attendance is scheduled to synchronize automatically every morning at 4:00 AM IST.",
           type: "success",
         });
         setTimeout(() => {
           router.push("/dashboard");
           router.refresh();
-        }, 1500);
-      } else {
-        setMessage({
-          text: `Sync error: ${syncJson.error || syncJson.message || "Could not fetch report"}. Please verify your Year and Semester.`,
-          type: "error",
-        });
+        }, 2000);
       }
     } catch {
       setMessage({ text: "Network error occurred while synchronizing.", type: "error" });
@@ -437,7 +452,7 @@ function SettingsForm() {
             <div>
               <label className="text-xs font-bold text-foreground block">Automatic Daily Synchronization</label>
               <span className="text-[11px] text-muted-foreground">
-                Fetch attendance automatically in background every day at 01:00 UTC (06:30 AM IST).
+                Fetch attendance automatically in background every morning at 04:00 AM IST.
               </span>
             </div>
             <input

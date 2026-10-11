@@ -2,10 +2,8 @@ name: SVKM Portal Nightly Attendance Sync
 
 on:
   schedule:
-    # 14:30 UTC = 8:00 PM IST (Evening window after lectures)
-    # 00:30 UTC = 6:00 AM IST (Early morning window before college)
-    - cron: '30 14 * * *'
-    - cron: '30 0 * * *'
+    # 22:30 UTC = 4:00 AM IST (Automated early morning sync before college hours)
+    - cron: '30 22 * * *'
   # Allows you to manually trigger the sync from GitHub Actions UI anytime
   workflow_dispatch:
 

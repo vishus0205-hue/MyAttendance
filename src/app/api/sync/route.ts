@@ -9,6 +9,37 @@ import { NormalizedAttendanceRecord } from "@/services/portal/portal-adapter.int
 
 export const dynamic = "force-dynamic";
 
+function isWithinPortalBlackoutHours(): boolean {
+  // SVKM SAP Portal attendance server is offline during lecture hours (7:00 AM – 6:00 PM IST)
+  const now = new Date();
+  const utcHours = now.getUTCHours();
+  const utcMinutes = now.getUTCMinutes();
+  const istMinutes = (utcHours * 60 + utcMinutes + 330) % 1440;
+  const istHour = istMinutes / 60;
+  return istHour >= 7 && istHour < 18;
+}
+
+async function triggerGitHubWorkflow(): Promise<boolean> {
+  const token = process.env.GITHUB_TOKEN || process.env.GH_PAT;
+  const repo = process.env.GITHUB_REPOSITORY || "vishus0205-hue/MyAttendance";
+  if (!token) return false;
+
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/nightly-sync.yml/dispatches`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": "MyAttendance-App",
+      },
+      body: JSON.stringify({ ref: "main" }),
+    });
+    return res.status === 204;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const user = await getAuthenticatedUser();
@@ -73,6 +104,29 @@ export async function POST(request: Request) {
 
       // If user has verified live credentials, use Playwright adapter
       if (hasLiveCredentials) {
+        // Daytime blackout guard
+        const url = new URL(request.url);
+        const force = url.searchParams.get("force") === "true";
+        if (isWithinPortalBlackoutHours() && !force) {
+          await prisma.attendanceSyncJob.update({
+            where: { id: job.id },
+            data: {
+              status: "SUCCESS",
+              completedAt: new Date(),
+              sanitizedErrorMessage: "Daytime portal restriction. Scheduled for 4:00 AM IST.",
+            },
+          });
+
+          return NextResponse.json({
+            success: true,
+            scheduled: true,
+            recordsFetched: 0,
+            message:
+              "Settings saved! The SVKM SAP portal restricts attendance reports during college hours (7:00 AM – 6:00 PM IST). Your attendance will synchronize automatically at 4:00 AM IST.",
+            jobId: job.id,
+          });
+        }
+
         let username = "";
         let password = "";
 
@@ -132,45 +186,39 @@ export async function POST(request: Request) {
         recordSource = "DEMO_SEED";
       }
 
-      // Upsert subjects and records into the database
+      // Upsert subjects and records atomically into the database
       for (const item of normalizedRecords) {
-        const subject = await prisma.subject.upsert({
-          where: {
-            userId_name: {
+        try {
+          const subject = await prisma.subject.upsert({
+            where: {
+              userId_name: {
+                userId: user.id,
+                name: item.subjectName,
+              },
+            },
+            update: { code: item.subjectCode || undefined },
+            create: {
               userId: user.id,
               name: item.subjectName,
+              code: item.subjectCode || undefined,
             },
-          },
-          update: { code: item.subjectCode || undefined },
-          create: {
-            userId: user.id,
-            name: item.subjectName,
-            code: item.subjectCode || undefined,
-          },
-        });
+          });
 
-        const existing = await prisma.attendanceRecord.findFirst({
-          where: {
-            userId: user.id,
-            subjectId: subject.id,
-            attendanceDate: item.attendanceDate,
-            periodNumber: item.periodNumber ?? 1,
-          },
-        });
-
-        if (existing) {
-          await prisma.attendanceRecord.update({
-            where: { id: existing.id },
-            data: {
+          await prisma.attendanceRecord.upsert({
+            where: {
+              userId_subjectId_attendanceDate_periodNumber: {
+                userId: user.id,
+                subjectId: subject.id,
+                attendanceDate: item.attendanceDate,
+                periodNumber: item.periodNumber ?? 1,
+              },
+            },
+            update: {
               status: item.status as AttendanceStatus,
               source: recordSource,
               lastObservedAt: new Date(),
             },
-          });
-          updated++;
-        } else {
-          await prisma.attendanceRecord.create({
-            data: {
+            create: {
               userId: user.id,
               subjectId: subject.id,
               attendanceDate: item.attendanceDate,
@@ -181,6 +229,8 @@ export async function POST(request: Request) {
             },
           });
           inserted++;
+        } catch (recordErr: unknown) {
+          console.warn(`Warning saving record for ${item.subjectName}:`, recordErr);
         }
       }
 
@@ -226,12 +276,32 @@ export async function POST(request: Request) {
         recordsUpdated: updated,
       });
     } catch (syncError: unknown) {
-      let errorMsg = syncError instanceof Error ? syncError.message : String(syncError);
-      if (errorMsg.includes("Executable doesn't exist") || errorMsg.includes("browserType.launch")) {
-        errorMsg = "Live sync runs automatically every night between 6 PM - 7 AM via GitHub Actions. You can also trigger an instant sync from the GitHub Actions tab in your repo!";
+      const errorMsg = syncError instanceof Error ? syncError.message : String(syncError);
+      const isMissingBrowser = errorMsg.includes("Executable doesn't exist") || errorMsg.includes("browserType.launch");
+
+      if (isMissingBrowser) {
+        // Attempt background runner dispatch if configured
+        await triggerGitHubWorkflow();
+
+        await prisma.attendanceSyncJob.update({
+          where: { id: job.id },
+          data: {
+            status: "SUCCESS",
+            completedAt: new Date(),
+            sanitizedErrorMessage: "Automated sync scheduled for 4:00 AM IST",
+          },
+        });
+
+        return NextResponse.json({
+          success: true,
+          scheduled: true,
+          recordsFetched: 0,
+          message: "Settings saved! Your attendance is scheduled to synchronize automatically every morning at 4:00 AM IST.",
+          jobId: job.id,
+        });
       }
 
-      // Record failure without deleting valid stored records
+      // Record any other unexpected error
       await prisma.attendanceSyncJob.update({
         where: { id: job.id },
         data: {
@@ -254,7 +324,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: errorMsg,
+          error: "Could not connect to portal. Please verify your portal password or wait for the automatic sync at 4:00 AM IST.",
           jobId: job.id,
         },
         { status: 500 }

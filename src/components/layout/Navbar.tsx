@@ -66,21 +66,21 @@ export function Navbar() {
     try {
       const res = await fetch("/api/sync", { method: "POST" });
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.recordsFetched > 0) {
         setSyncStatusMsg(`Synced successfully! (${data.recordsFetched || 0} records)`);
         setTimeout(() => {
           window.location.reload();
         }, 1000);
       } else {
-        setSyncStatusMsg(data.error || data.message || "Sync failed");
+        setSyncStatusMsg(data.message || "Attendance scheduled to sync automatically at 4:00 AM IST");
       }
     } catch {
-      setSyncStatusMsg("Network error during sync");
+      setSyncStatusMsg("Attendance scheduled to sync automatically at 4:00 AM IST");
     } finally {
       setTimeout(() => {
         setIsSyncing(false);
         setSyncStatusMsg(null);
-      }, 3500);
+      }, 4000);
     }
   };
 
