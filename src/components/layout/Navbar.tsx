@@ -59,10 +59,8 @@ export function Navbar() {
       setUser(null);
       return;
     }
-    if (!user) {
-      fetchUser();
-    }
-  }, [pathname, isAuthPage, user]);
+    fetchUser();
+  }, [pathname, isAuthPage]);
 
   const fetchUser = async () => {
     try {
@@ -157,10 +155,9 @@ export function Navbar() {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
-      router.push("/login");
-      router.refresh();
+      window.location.href = "/login";
     } catch {
-      router.push("/login");
+      window.location.href = "/login";
     }
   };
 

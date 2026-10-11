@@ -27,8 +27,7 @@ export default function RegisterPage() {
 
       const data = await res.json();
       if (data.success) {
-        router.push("/settings");
-        router.refresh();
+        window.location.href = "/settings";
       } else {
         setError(data.error || "Failed to create account");
       }

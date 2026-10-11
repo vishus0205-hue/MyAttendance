@@ -30,15 +30,13 @@ export default function LoginPage() {
         if (data.hasSynced) {
           setInfoMsg(`Welcome back, ${data.user?.name || "Student"}! Loading attendance...`);
           setTimeout(() => {
-            router.push("/dashboard");
-            router.refresh();
-          }, 800);
+            window.location.href = "/dashboard";
+          }, 600);
         } else {
           setInfoMsg("Connected successfully! Please set your Semester details in Settings...");
           setTimeout(() => {
-            router.push("/settings?firstTime=true");
-            router.refresh();
-          }, 1200);
+            window.location.href = "/settings?firstTime=true";
+          }, 800);
         }
       } else {
         setError(data.error || "Failed to authenticate. Please check your credentials.");
