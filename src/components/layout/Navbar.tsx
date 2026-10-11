@@ -186,7 +186,7 @@ export function Navbar() {
               </div>
               <div>
                 <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-300 dark:to-purple-400 bg-clip-text text-transparent font-black tracking-tight text-base sm:text-lg">
-                  MyAttendace
+                  MyAttendance
                 </span>
                 <span className="hidden sm:block text-[10px] text-slate-500 dark:text-slate-400 font-medium -mt-1 tracking-normal">
                   Student Attendance Tracker

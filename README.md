@@ -1,4 +1,4 @@
-# MyAttendace — Automated College Attendance Dashboard
+# MyAttendance — Automated College Attendance Dashboard
 
 A personal, secure college attendance tracking web application built with **Next.js 14**, **PostgreSQL**, **Prisma ORM**, **Tailwind CSS**, and **Playwright**.
 
