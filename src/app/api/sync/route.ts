@@ -9,17 +9,7 @@ import { NormalizedAttendanceRecord } from "@/services/portal/portal-adapter.int
 
 export const dynamic = "force-dynamic";
 
-function isWithinPortalBlackoutHours(): boolean {
-  // SVKM SAP Portal attendance server is offline during lecture hours (7:00 AM – 6:00 PM IST)
-  const now = new Date();
-  const utcHours = now.getUTCHours();
-  const utcMinutes = now.getUTCMinutes();
-  const istMinutes = (utcHours * 60 + utcMinutes + 330) % 1440;
-  const istHour = istMinutes / 60;
-  return istHour >= 7 && istHour < 18;
-}
-
-async function triggerGitHubWorkflow(): Promise<boolean> {
+async function triggerGitHubWorkflow(targetUser?: string, fullSync: boolean = false): Promise<boolean> {
   const token = process.env.GITHUB_TOKEN || process.env.GH_PAT;
   const repo = process.env.GITHUB_REPOSITORY || "vishus0205-hue/MyAttendance";
   if (!token) return false;
@@ -32,10 +22,17 @@ async function triggerGitHubWorkflow(): Promise<boolean> {
         Accept: "application/vnd.github.v3+json",
         "User-Agent": "MyAttendance-App",
       },
-      body: JSON.stringify({ ref: "main" }),
+      body: JSON.stringify({
+        ref: "main",
+        inputs: {
+          targetUser: targetUser || "",
+          fullSync: fullSync ? "true" : "false",
+        },
+      }),
     });
     return res.status === 204;
-  } catch {
+  } catch (err) {
+    console.warn("Failed to trigger GitHub Actions workflow dispatch:", err);
     return false;
   }
 }
@@ -43,6 +40,16 @@ async function triggerGitHubWorkflow(): Promise<boolean> {
 export async function POST(request: Request) {
   try {
     const user = await getAuthenticatedUser();
+
+    let isFullSync = false;
+    try {
+      const body = await request.clone().json();
+      if (body?.fullSync === true) {
+        isFullSync = true;
+      }
+    } catch {
+      // Body empty or not JSON
+    }
 
     // 1. Prevent concurrent or overlapping sync jobs
     const activeJob = await prisma.attendanceSyncJob.findFirst({
@@ -104,28 +111,6 @@ export async function POST(request: Request) {
 
       // If user has verified live credentials, use Playwright adapter
       if (hasLiveCredentials) {
-        // Daytime blackout guard
-        const url = new URL(request.url);
-        const force = url.searchParams.get("force") === "true";
-        if (isWithinPortalBlackoutHours() && !force) {
-          await prisma.attendanceSyncJob.update({
-            where: { id: job.id },
-            data: {
-              status: "SUCCESS",
-              completedAt: new Date(),
-              sanitizedErrorMessage: "Daytime portal restriction. Scheduled for 4:00 AM IST.",
-            },
-          });
-
-          return NextResponse.json({
-            success: true,
-            scheduled: true,
-            recordsFetched: 0,
-            message:
-              "Settings saved! The SVKM SAP portal restricts attendance reports during college hours (7:00 AM – 6:00 PM IST). Your attendance will synchronize automatically at 4:00 AM IST.",
-            jobId: job.id,
-          });
-        }
 
         let username = "";
         let password = "";
@@ -148,7 +133,24 @@ export async function POST(request: Request) {
 
         const playwrightAdapter = new PlaywrightPortalAdapter();
 
-        // Fetch live report: full academic semester (from June 1st of current year up to today)
+        // Smart date selection: if incremental, only fetch from 14 days before latest existing record
+        let syncStartDate = portalConn.startDate || "01.06.2026";
+        if (!isFullSync) {
+          const latestRecord = await prisma.attendanceRecord.findFirst({
+            where: { userId: user.id },
+            orderBy: { attendanceDate: "desc" },
+          });
+
+          if (latestRecord) {
+            const lookback = new Date(latestRecord.attendanceDate);
+            lookback.setDate(lookback.getDate() - 14);
+            const day = String(lookback.getDate()).padStart(2, "0");
+            const month = String(lookback.getMonth() + 1).padStart(2, "0");
+            const year = lookback.getFullYear();
+            syncStartDate = `${day}.${month}.${year}`;
+          }
+        }
+
         const semesterStartDate = new Date();
         semesterStartDate.setMonth(5); // June
         semesterStartDate.setDate(1);
@@ -160,7 +162,7 @@ export async function POST(request: Request) {
             academicYear: portalConn.academicYear || "2026-2027",
             semester: portalConn.semester || "Semester V",
             reportType: portalConn.reportType || "Detail Report",
-            startDate: portalConn.startDate || "01.06.2026",
+            startDate: syncStartDate,
             endDate: portalConn.endDate || undefined,
           }
         );
@@ -186,29 +188,42 @@ export async function POST(request: Request) {
         recordSource = "DEMO_SEED";
       }
 
-      // Upsert subjects and records atomically into the database
+      // Upsert subjects and records with in-memory caching to minimize database roundtrips
+      const existingSubjects = await prisma.subject.findMany({
+        where: { userId: user.id },
+      });
+      const subjectMap = new Map<string, string>();
+      for (const s of existingSubjects) {
+        subjectMap.set(s.name, s.id);
+      }
+
       for (const item of normalizedRecords) {
         try {
-          const subject = await prisma.subject.upsert({
-            where: {
-              userId_name: {
+          let subjectId = subjectMap.get(item.subjectName);
+          if (!subjectId) {
+            const subject = await prisma.subject.upsert({
+              where: {
+                userId_name: {
+                  userId: user.id,
+                  name: item.subjectName,
+                },
+              },
+              update: { code: item.subjectCode || undefined },
+              create: {
                 userId: user.id,
                 name: item.subjectName,
+                code: item.subjectCode || undefined,
               },
-            },
-            update: { code: item.subjectCode || undefined },
-            create: {
-              userId: user.id,
-              name: item.subjectName,
-              code: item.subjectCode || undefined,
-            },
-          });
+            });
+            subjectId = subject.id;
+            subjectMap.set(item.subjectName, subjectId);
+          }
 
           await prisma.attendanceRecord.upsert({
             where: {
               userId_subjectId_attendanceDate_periodNumber: {
                 userId: user.id,
-                subjectId: subject.id,
+                subjectId: subjectId,
                 attendanceDate: item.attendanceDate,
                 periodNumber: item.periodNumber ?? 1,
               },
@@ -220,7 +235,7 @@ export async function POST(request: Request) {
             },
             create: {
               userId: user.id,
-              subjectId: subject.id,
+              subjectId: subjectId,
               attendanceDate: item.attendanceDate,
               periodNumber: item.periodNumber ?? 1,
               status: item.status as AttendanceStatus,
@@ -280,25 +295,46 @@ export async function POST(request: Request) {
       const isMissingBrowser = errorMsg.includes("Executable doesn't exist") || errorMsg.includes("browserType.launch");
 
       if (isMissingBrowser) {
-        // Attempt background runner dispatch if configured
-        await triggerGitHubWorkflow();
+        // Attempt background runner dispatch to GitHub Actions
+        const dispatched = await triggerGitHubWorkflow(user.email, isFullSync);
+
+        if (dispatched) {
+          await prisma.attendanceSyncJob.update({
+            where: { id: job.id },
+            data: {
+              status: "IN_PROGRESS",
+              sanitizedErrorMessage: "Sync dispatched to GitHub Actions background runner",
+            },
+          });
+
+          return NextResponse.json({
+            success: true,
+            dispatched: true,
+            recordsFetched: 0,
+            message: "Sync requested! Cloud runner is fetching your attendance now. Check back in ~1-2 minutes.",
+            jobId: job.id,
+          });
+        }
 
         await prisma.attendanceSyncJob.update({
           where: { id: job.id },
           data: {
-            status: "SUCCESS",
+            status: "FAILED",
             completedAt: new Date(),
-            sanitizedErrorMessage: "Automated sync scheduled for 4:00 AM IST",
+            sanitizedErrorMessage: "Browser runtime not available on serverless host; GITHUB_TOKEN not configured.",
           },
         });
 
-        return NextResponse.json({
-          success: true,
-          scheduled: true,
-          recordsFetched: 0,
-          message: "Settings saved! Your attendance is scheduled to synchronize automatically every morning at 4:00 AM IST.",
-          jobId: job.id,
-        });
+        return NextResponse.json(
+          {
+            success: false,
+            serverless: true,
+            error:
+              "Direct browser scraping requires Chromium (not available on Vercel serverless). Attendance syncs automatically via GitHub Actions every morning at 4:00 AM IST, or you can trigger 'SVKM Portal Nightly Attendance Sync' manually from GitHub Actions.",
+            jobId: job.id,
+          },
+          { status: 503 }
+        );
       }
 
       // Record any other unexpected error
@@ -324,7 +360,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "Could not connect to portal. Please verify your portal password or wait for the automatic sync at 4:00 AM IST.",
+          error: `Portal sync failed: ${errorMsg}`,
           jobId: job.id,
         },
         { status: 500 }

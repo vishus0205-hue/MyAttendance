@@ -166,7 +166,16 @@ function SettingsForm() {
             router.push("/dashboard");
             router.refresh();
           }, 1500);
-        } else {
+        } else if (syncJson.dispatched) {
+          setMessage({
+            text: syncJson.message || "Sync dispatched to GitHub Actions runner! Records will update in ~1-2 minutes.",
+            type: "success",
+          });
+          setTimeout(() => {
+            router.push("/dashboard");
+            router.refresh();
+          }, 2500);
+        } else if (syncJson.success) {
           setMessage({
             text: syncJson.message || "Settings saved successfully! Your attendance is scheduled to synchronize automatically every morning at 4:00 AM IST.",
             type: "success",
@@ -175,10 +184,15 @@ function SettingsForm() {
             router.push("/dashboard");
             router.refresh();
           }, 2000);
+        } else {
+          setMessage({
+            text: syncJson.error || syncJson.message || "Settings saved. To sync attendance immediately, trigger 'SVKM Portal Nightly Attendance Sync' in GitHub Actions.",
+            type: "error",
+          });
         }
       } catch {
         setMessage({
-          text: "Settings saved successfully! Your attendance is scheduled to synchronize automatically every morning at 4:00 AM IST.",
+          text: "Settings saved! If manual sync fails on host, run 'SVKM Portal Nightly Attendance Sync' in GitHub Actions.",
           type: "success",
         });
         setTimeout(() => {

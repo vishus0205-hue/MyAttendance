@@ -49,6 +49,16 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
           "--ignore-certificate-errors",
           "--disable-dev-shm-usage",
           "--disable-gpu",
+          "--disable-background-networking",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-breakpad",
+          "--disable-component-extensions-with-background-pages",
+          "--disable-extensions",
+          "--disable-ipc-flooding-protection",
+          "--disable-renderer-backgrounding",
+          "--force-color-profile=srgb",
+          "--metrics-recording-only",
         ],
       });
     }
@@ -177,12 +187,12 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
       const page = await context.newPage();
 
       // 1. Login
-      await page.goto(portalUrl, { waitUntil: "commit", timeout: 35000 });
-      await page.waitForSelector("#logonuidfield", { timeout: 25000 });
+      await page.goto(portalUrl, { waitUntil: "commit", timeout: 45000 });
+      await page.waitForSelector("#logonuidfield", { timeout: 30000 });
       await page.waitForFunction(
         () => typeof (window as unknown as { code?: string }).code === "string" && (window as unknown as { code?: string }).code!.length > 0,
-        { timeout: 12000 }
-      );
+        { timeout: 15000 }
+      ).catch(() => null);
 
       const captchaCode = await page.evaluate(() => {
         const win = window as unknown as { code?: string };
@@ -196,7 +206,7 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
       }
 
       await Promise.all([
-        page.waitForNavigation({ waitUntil: "commit", timeout: 30000 }).catch(() => null),
+        page.waitForNavigation({ waitUntil: "commit", timeout: 35000 }).catch(() => null),
         page.evaluate(() => {
           const form = (document as unknown as { logonForm?: HTMLFormElement }).logonForm;
           if (form) form.submit();
@@ -204,7 +214,28 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
         }),
       ]);
 
-      await page.waitForTimeout(5000);
+      // Quick wait for post-login indicators
+      await page.waitForSelector("#navNode_1_4, #welcome_message, .prtlHdrWelcome, .urTxtError, #logonErrorText", { timeout: 15000 }).catch(() => null);
+      await page.waitForTimeout(800);
+
+      // Verify portal authentication didn't fail
+      const pageContent = await page.content();
+      if (
+        pageContent.includes("User authentication failed") ||
+        pageContent.includes("Logon failed") ||
+        pageContent.includes("Invalid username or password") ||
+        pageContent.includes("Invalid user name or password") ||
+        pageContent.includes("Password has expired")
+      ) {
+        throw new Error(`Portal login failed for student ${credentials.username}: Invalid credentials or expired password.`);
+      }
+
+      // Check if session conflict modal/button is present ("Continue", "Terminate other sessions")
+      const continueBtn = page.locator("input[value*='Continue'], button:has-text('Continue'), input[name*='terminate'], #button_continue");
+      if ((await continueBtn.count()) > 0) {
+        await continueBtn.first().click().catch(() => null);
+        await page.waitForTimeout(1000);
+      }
 
       // Check student name from header
       const studentName = await page.evaluate(() => {
@@ -213,27 +244,72 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
       });
 
       // 2. Click Attendance Display for Students tab
-      const attendanceNav = page.locator("#navNodeAnchor_1_4, a:has-text('Attendance Display for Students')");
-      await attendanceNav.first().waitFor({ state: "visible", timeout: 20000 });
-      await attendanceNav.first().click();
+      const attendanceNav = page.locator(
+        "#navNode_1_4, #navNodeAnchor_1_4, td:has-text('Attendance Display for Students'), a:has-text('Attendance Display for Students')"
+      );
+      await attendanceNav.first().waitFor({ state: "visible", timeout: 25000 });
+      await attendanceNav.first().click().catch(() => null);
 
-      // 3. Locate WebDynpro isolatedWorkArea frame
+      // Invoke doMouseClick directly as a robust fallback for SAP NetWeaver navigation
+      await page.evaluate(() => {
+        const win = window as any;
+        if (typeof win.doMouseClick === "function") {
+          win.doMouseClick(1, 4);
+        } else {
+          const el = document.getElementById("navNode_1_4") || document.getElementById("navNodeAnchor_1_4");
+          el?.click();
+        }
+      }).catch(() => null);
+
+      // 3. Locate WebDynpro isolatedWorkArea frame with responsive 350ms retry
       let reportFrame = null;
-      for (let attempt = 0; attempt < 25; attempt++) {
-        await page.waitForTimeout(1000);
+      for (let attempt = 0; attempt < 80; attempt++) {
+        await page.waitForTimeout(350);
         const frames = page.frames();
         for (const f of frames) {
           try {
-            const text = await f.evaluate(() => document.body?.innerText || "");
-            if (text.includes("Student's Attendance Report")) {
+            const url = f.url() || "";
+            const name = f.name() || "";
+
+            // Primary: Match by WebDynpro attendance app in URL
+            if (url.includes("ZSVKM_STUDENT_ATTENDA") || url.includes("STUDENT_ATTENDANCE")) {
+              reportFrame = f;
+              break;
+            }
+
+            // Secondary: Match by isolatedWorkArea frame name
+            if (name === "isolatedWorkArea") {
+              const text = await f.evaluate(() => document.body?.innerText || "").catch(() => "");
+              if (text.includes("Attendance Report") || text.includes("Student's Attendance Report")) {
+                reportFrame = f;
+                break;
+              }
+            }
+
+            // Fallback: Match by body text content
+            const text = await f.evaluate(() => document.body?.innerText || "").catch(() => "");
+            if (
+              text.toLowerCase().includes("student's attendance report") ||
+              text.toLowerCase().includes("attendance report")
+            ) {
               reportFrame = f;
               break;
             }
           } catch {
-            // Ignore frame cross-origin evaluation errors
+            // Ignore frame navigation and cross-origin evaluation errors during load
           }
         }
         if (reportFrame) break;
+
+        // If not found after ~10 or 20 seconds, re-trigger navigation in case SAP event was dropped
+        if (attempt === 30 || attempt === 60) {
+          await page.evaluate(() => {
+            const win = window as any;
+            if (typeof win.doMouseClick === "function") {
+              win.doMouseClick(1, 4);
+            }
+          }).catch(() => null);
+        }
       }
 
       if (!reportFrame) {
@@ -241,8 +317,9 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
       }
 
       // 4. Select Academic Year (WD2B)
+      await reportFrame.waitForSelector("#WD2B", { timeout: 25000 });
       await reportFrame.click("#WD2B");
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(300);
 
       const reqYear = options?.academicYear || "2026-2027";
       const yearSelected = await reportFrame.evaluate((targetYear) => {
@@ -255,11 +332,12 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
         }
         return null;
       }, reqYear);
-      await page.waitForTimeout(2500);
+      await page.waitForTimeout(800);
 
       // 5. Select Trimester / Semester (WD34)
+      await reportFrame.waitForSelector("#WD34", { timeout: 15000 });
       await reportFrame.click("#WD34");
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(300);
       const reqSem = options?.semester || "Semester V";
       await reportFrame.evaluate((targetSem) => {
         const items = Array.from(document.querySelectorAll("#WD35 .lsListbox__item, #WD35 [role=option]"));
@@ -271,11 +349,12 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
           target.click();
         }
       }, reqSem);
-      await page.waitForTimeout(2500);
+      await page.waitForTimeout(800);
 
       // 6. Select Detail Report (WD3A)
+      await reportFrame.waitForSelector("#WD3A", { timeout: 15000 });
       await reportFrame.click("#WD3A");
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(300);
       const reqReportType = options?.reportType || "Detail Report";
       await reportFrame.evaluate((targetType) => {
         const items = Array.from(document.querySelectorAll("#WD3B .lsListbox__item, #WD3B [role=option]"));
@@ -287,7 +366,10 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
           detailItem.click();
         }
       }, reqReportType);
-      await page.waitForTimeout(2000);
+      
+      // Wait for date inputs to become visible
+      await reportFrame.waitForSelector("#WD47", { timeout: 15000 });
+      await page.waitForTimeout(300);
 
       // 7. Fill Start Date & End Date
       const formatDate = (d: Date) => {
@@ -303,16 +385,20 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
       await reportFrame.fill("#WD47", startDateStr);
       await reportFrame.fill("#WD4C", endDateStr);
       await reportFrame.press("#WD4C", "Tab");
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(300);
 
       // 8. Click SUBMIT
-      const submitBtn = reportFrame.locator("text='SUBMIT'");
-      await submitBtn.click();
+      const submitBtn = reportFrame.locator("#WD52").or(reportFrame.getByText("SUBMIT", { exact: true }));
+      await submitBtn.first().click();
+      await reportFrame.evaluate(() => {
+        const btn = document.getElementById("WD52") || document.getElementById("WD52-caption");
+        if (btn) (btn as HTMLElement).click();
+      }).catch(() => null);
 
-      // 9. Extract PDF download URL from LightSpeed lsdata attribute
+      // 9. Extract PDF download URL from LightSpeed lsdata attribute (responsive 350ms poll)
       let pdfUrl: string | null = null;
-      for (let i = 0; i < 25; i++) {
-        await page.waitForTimeout(1000);
+      for (let i = 0; i < 75; i++) {
+        await page.waitForTimeout(350);
         pdfUrl = await reportFrame.evaluate(() => {
           const els = Array.from(document.querySelectorAll("[lsdata], object, embed, a"));
           for (const el of els) {
@@ -336,7 +422,7 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
       }
 
       if (!pdfUrl) {
-        throw new Error("SAP Portal did not generate attendance PDF within 25 seconds.");
+        throw new Error("SAP Portal did not generate attendance PDF within 28 seconds.");
       }
 
       const fullPdfUrl = new URL(pdfUrl, "https://sdcwdapp.svkm.ac.in").toString();

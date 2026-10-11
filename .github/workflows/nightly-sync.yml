@@ -6,11 +6,22 @@ on:
     - cron: '30 22 * * *'
   # Allows you to manually trigger the sync from GitHub Actions UI anytime
   workflow_dispatch:
+    inputs:
+      targetUser:
+        description: 'Target student email or ID (optional - leave blank to sync all users)'
+        required: false
+        default: ''
+        type: string
+      fullSync:
+        description: 'Force full semester sync instead of 14-day incremental (true/false)'
+        required: false
+        default: 'false'
+        type: string
 
 jobs:
   sync-attendance:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -22,22 +33,44 @@ jobs:
           node-version: 20
           cache: 'npm'
 
+      - name: Cache Node modules
+        uses: actions/cache@v4
+        id: node-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
+        if: steps.node-cache.outputs.cache-hit != 'true'
         run: npm ci
 
-      - name: Install Playwright Chromium with system dependencies
+      - name: Cache Playwright browser binaries
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright Chromium with dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+
+      - name: Ensure OS dependencies for cached Chromium
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - name: Generate Prisma Client
         run: npx prisma generate
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Run Nightly Sync
-        run: npm run sync:nightly
+      - name: Run Attendance Sync
+        run: npm run sync:nightly -- "${{ github.event.inputs.targetUser }}"
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PORTAL_ENCRYPTION_SECRET: ${{ secrets.PORTAL_ENCRYPTION_SECRET }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           PORTAL_URL: ${{ secrets.PORTAL_URL || 'https://sdc-sppap1.svkm.ac.in:50001/irj/portal' }}
           PORTAL_ALLOWED_HOSTS: ${{ secrets.PORTAL_ALLOWED_HOSTS || 'sdc-sppap1.svkm.ac.in' }}
+          SYNC_TARGET_USER: ${{ github.event.inputs.targetUser }}
+          FULL_SYNC: ${{ github.event.inputs.fullSync || 'false' }}

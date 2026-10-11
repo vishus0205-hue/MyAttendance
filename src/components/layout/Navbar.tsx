@@ -78,17 +78,58 @@ export function Navbar() {
         setTimeout(() => {
           window.location.reload();
         }, 1000);
-      } else {
+        return;
+      } else if (data.dispatched) {
+        setSyncStatusMsg("Cloud runner syncing on GitHub Actions... (~30s)");
+        
+        // Poll job status every 4 seconds for up to 90 seconds
+        let attempts = 0;
+        const pollInterval = setInterval(async () => {
+          attempts++;
+          try {
+            const statusRes = await fetch("/api/sync/status");
+            const statusData = await statusRes.json();
+            const job = statusData?.latestJob;
+
+            if (job && job.status === "SUCCESS") {
+              clearInterval(pollInterval);
+              setSyncStatusMsg(`Sync complete! (${job.recordsFetched || 0} records updated)`);
+              setTimeout(() => {
+                window.location.reload();
+              }, 1200);
+            } else if (job && job.status === "FAILED") {
+              clearInterval(pollInterval);
+              setSyncStatusMsg("Cloud sync failed. Check settings for details.");
+              setTimeout(() => {
+                setIsSyncing(false);
+                setSyncStatusMsg(null);
+              }, 4000);
+            } else if (attempts >= 20) { // ~80 seconds
+              clearInterval(pollInterval);
+              setSyncStatusMsg("Sync taking longer than usual. Please refresh shortly.");
+              setTimeout(() => {
+                setIsSyncing(false);
+                setSyncStatusMsg(null);
+              }, 4000);
+            }
+          } catch {
+            // Network polling error; continue waiting
+          }
+        }, 4000);
+        return;
+      } else if (data.success) {
         setSyncStatusMsg(data.message || "Attendance scheduled to sync automatically at 4:00 AM IST");
+      } else {
+        setSyncStatusMsg(data.error || data.message || "Sync failed. Check settings or portal credentials.");
       }
     } catch {
-      setSyncStatusMsg("Attendance scheduled to sync automatically at 4:00 AM IST");
-    } finally {
-      setTimeout(() => {
-        setIsSyncing(false);
-        setSyncStatusMsg(null);
-      }, 4000);
+      setSyncStatusMsg("Network error during sync.");
     }
+
+    setTimeout(() => {
+      setIsSyncing(false);
+      setSyncStatusMsg(null);
+    }, 4000);
   };
 
   const handleLogout = async () => {
