@@ -9,6 +9,7 @@ export interface PortalCredentials {
 export interface ConnectionTestResult {
   success: boolean;
   message: string;
+  errorCode?: "INVALID_CREDENTIALS" | "ACCOUNT_ACTION_REQUIRED" | "VERIFICATION_UNAVAILABLE";
   studentName?: string;
   studentId?: string;
   sessionValidUntil?: Date;

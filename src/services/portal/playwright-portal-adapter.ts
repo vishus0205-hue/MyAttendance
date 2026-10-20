@@ -10,6 +10,7 @@ import {
 } from "./portal-adapter.interface";
 import { AttendanceStatusType } from "../attendance/attendance-calculator";
 import { parsePdfAttendanceItems } from "./pdf-attendance-parser";
+import { classifyPortalLogin } from "./portal-login-result";
 
 const pdfParse = require("pdf-parse");
 
@@ -23,9 +24,13 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
 
   private async getBrowser(): Promise<Browser> {
     if (!this.browser) {
+      const serverless = process.env.VERCEL === "1";
+      const serverlessChromium = serverless ? (await import("@sparticuz/chromium")).default : null;
       this.browser = await chromium.launch({
         headless: true,
+        ...(serverlessChromium ? { executablePath: await serverlessChromium.executablePath() } : {}),
         args: [
+          ...(serverlessChromium ? serverlessChromium.args : []),
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--ignore-certificate-errors",
@@ -92,6 +97,7 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
 
       await page.waitForFunction(
         () => typeof (window as unknown as { code?: string }).code === "string" && (window as unknown as { code?: string }).code!.length > 0,
+        undefined,
         { timeout: 10000 }
       ).catch(() => null);
 
@@ -100,20 +106,27 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
         return typeof win.code === "string" ? win.code : "";
       });
 
+      if (await page.locator("#txtInput").isVisible().catch(() => false) && !captchaCode) {
+        return {
+          success: false,
+          errorCode: "VERIFICATION_UNAVAILABLE",
+          message: "The SVKM portal challenge could not be completed automatically. Please try again shortly.",
+        };
+      }
+
       await userField.fill(cleanUsername);
       await page.fill("#logonpassfield", credentials.password);
       if (captchaCode) {
         await page.fill("#txtInput", captchaCode);
       }
 
-      await Promise.all([
-        page.waitForNavigation({ waitUntil: "commit", timeout: 35000 }).catch(() => null),
-        page.evaluate(() => {
-          const form = (document as unknown as { logonForm?: HTMLFormElement }).logonForm;
-          if (form) form.submit();
-          else document.getElementById("Button1")?.click();
-        }),
-      ]);
+      // Click the portal's button so its own captcha and form handlers run.
+      const submitButton = page.locator("#Button1, button[type='submit'], input[type='submit']").first();
+      if (await submitButton.count()) {
+        await submitButton.click({ timeout: 15000 });
+      } else {
+        await page.locator("#logonpassfield").press("Enter");
+      }
 
       // Wait for post-login indicators (welcome header, navigation, session conflict modal, or error text)
       await page.waitForSelector(
@@ -132,26 +145,7 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
         await page.waitForTimeout(1500);
       }
 
-      const pageContent = await page.content();
-      if (
-        pageContent.includes("User authentication failed") ||
-        pageContent.includes("Logon failed") ||
-        pageContent.includes("Invalid username or password") ||
-        pageContent.includes("Invalid user name or password") ||
-        pageContent.includes("Password has expired") ||
-        pageContent.includes("User is locked") ||
-        pageContent.includes("Client, user, or password is incorrect")
-      ) {
-        return {
-          success: false,
-          message: "Invalid Student User ID or Portal Password on the SVKM SAP portal.",
-        };
-      }
-
-      const cookies = await context.cookies();
-      const hasSapSession = cookies.some(
-        (c) => c.name.includes("MYSAPSSO2") || c.name.includes("JSESSIONID") || c.name.includes("PortalAlias")
-      );
+      const visibleErrorText = (await page.locator(".urTxtError:visible, #logonErrorText:visible").allInnerTexts()).join(" ");
 
       // Check student welcome name if present
       const welcomeName = await page.evaluate(() => {
@@ -162,22 +156,17 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
         return "";
       });
 
-      const hasAttendanceTab = (await page.locator("#navNode_1_4, td:has-text('Attendance Display for Students')").count()) > 0;
-      const isConfirmed = hasSapSession || Boolean(welcomeName) || hasAttendanceTab;
-
+      const hasAttendanceTab = await page.locator("#navNode_1_4, td:has-text('Attendance Display for Students')").first().isVisible().catch(() => false);
       return {
-        success: isConfirmed,
-        message: isConfirmed
-          ? "Authentication successful with SVKM SAP Portal"
-          : "Login submitted, awaiting confirmation",
-        studentName: welcomeName || undefined,
+        ...classifyPortalLogin(visibleErrorText, Boolean(welcomeName) || hasAttendanceTab, welcomeName || undefined),
         studentId: cleanUsername,
       };
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error("Portal login verification failed:", err);
       return {
         success: false,
-        message: `Portal connection error: ${errorMsg}`,
+        errorCode: "VERIFICATION_UNAVAILABLE",
+        message: "Portal login verification is temporarily unavailable. Please try again later.",
       };
     } finally {
       if (context) {
@@ -207,6 +196,7 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
       await page.waitForSelector("#logonuidfield", { timeout: 30000 });
       await page.waitForFunction(
         () => typeof (window as unknown as { code?: string }).code === "string" && (window as unknown as { code?: string }).code!.length > 0,
+        undefined,
         { timeout: 15000 }
       ).catch(() => null);
 
@@ -225,14 +215,12 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
         await page.fill("#txtInput", captchaCode);
       }
 
-      await Promise.all([
-        page.waitForNavigation({ waitUntil: "commit", timeout: 35000 }).catch(() => null),
-        page.evaluate(() => {
-          const form = (document as unknown as { logonForm?: HTMLFormElement }).logonForm;
-          if (form) form.submit();
-          else document.getElementById("Button1")?.click();
-        }),
-      ]);
+      const submitButton = page.locator("#Button1, button[type='submit'], input[type='submit']").first();
+      if (await submitButton.count()) {
+        await submitButton.click({ timeout: 15000 });
+      } else {
+        await page.locator("#logonpassfield").press("Enter");
+      }
 
       // Quick wait for post-login indicators
       await page.waitForSelector("#navNode_1_4, #welcome_message, .prtlHdrWelcome, .urTxtError, #logonErrorText", { timeout: 15000 }).catch(() => null);

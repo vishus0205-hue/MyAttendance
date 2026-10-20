@@ -3,7 +3,11 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    serverComponentsExternalPackages: ["playwright", "pdf-parse"],
+    serverComponentsExternalPackages: ["playwright", "pdf-parse", "@sparticuz/chromium"],
+    outputFileTracingIncludes: {
+      "/api/auth/login": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+      "/api/sync": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+    },
   },
 };
 

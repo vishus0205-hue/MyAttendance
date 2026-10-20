@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { signSessionToken, verifySessionToken } from "../src/lib/auth/token";
 import { parsePdfAttendanceItems } from "../src/services/portal/pdf-attendance-parser";
+import { classifyPortalLogin } from "../src/services/portal/portal-login-result";
 
 const previousSecret = process.env.AUTH_SECRET;
 try {
@@ -27,5 +28,11 @@ assert.throws(
   /missing a recognizable subject or status/
 );
 assert.throws(() => parsePdfAttendanceItems("unrecognized PDF layout"), /no recognizable attendance dates/);
+
+assert.equal(classifyPortalLogin("Welcome, Student", true, "Student").success, true);
+assert.equal(classifyPortalLogin("User authentication failed", false).errorCode, "INVALID_CREDENTIALS");
+assert.equal(classifyPortalLogin("Password has expired", false).errorCode, "ACCOUNT_ACTION_REQUIRED");
+assert.equal(classifyPortalLogin("Login submitted", false).errorCode, "VERIFICATION_UNAVAILABLE");
+assert.equal(classifyPortalLogin("User authentication failed", true).success, true);
 
 console.log("Security regression tests passed.");

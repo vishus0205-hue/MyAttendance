@@ -5,11 +5,23 @@ import { signSessionToken, SESSION_COOKIE_NAME } from "@/lib/auth/token";
 import { PlaywrightPortalAdapter } from "@/services/portal/playwright-portal-adapter";
 import { encryptCredentials, decryptCredentials } from "@/lib/security/crypto";
 import { z } from "zod";
+import { ConnectionTestResult } from "@/services/portal/portal-adapter.interface";
+
+export const runtime = "nodejs";
+export const maxDuration = 120;
 
 const loginSchema = z.object({
   username: z.string().min(1, "Student User ID or Portal Username is required."),
   password: z.string().min(1, "Portal Password is required."),
 });
+
+function portalFailureResponse(result: ConnectionTestResult) {
+  const invalidCredentials = result.errorCode === "INVALID_CREDENTIALS";
+  return NextResponse.json(
+    { success: false, error: result.message },
+    { status: invalidCredentials ? 401 : result.errorCode === "ACCOUNT_ACTION_REQUIRED" ? 403 : 503 }
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,68 +76,41 @@ export async function POST(request: NextRequest) {
 
       if (!isMatch) {
         // Test against SVKM SAP portal (e.g. if student updated password on official portal)
+        let testResult: ConnectionTestResult;
         try {
-          const testResult = await playwrightAdapter.testConnection({
+          testResult = await playwrightAdapter.testConnection({
             username: user.studentId || cleanStudentId,
             password,
           });
-
-          const isBrowserMissing = Boolean(
-            testResult.message?.includes("Executable doesn't exist") ||
-            testResult.message?.includes("browserType.launch") ||
-            testResult.message?.includes("playwright")
-          );
-
-          if (!testResult.success) {
-            if (isBrowserMissing) {
-              return NextResponse.json(
-                {
-                  success: false,
-                  error: "Password incorrect. If you recently updated your SAP portal password, please update your credentials in Settings.",
-                },
-                { status: 401 }
-              );
-            }
-            return NextResponse.json(
-              {
-                success: false,
-                error: testResult.message || "Invalid Student User ID or Portal Password on the SVKM SAP portal.",
-              },
-              { status: 401 }
-            );
-          }
-
-          // Portal accepted new password: update stored hash and encrypted credentials
-          const newHash = await bcrypt.hash(password, 10);
-          const encPass = encryptCredentials(password);
-
-          await prisma.user.update({
-            where: { id: user.id },
-            data: {
-              passwordHash: newHash,
-              name: testResult.studentName || user.name,
-            },
-          });
-
-          if (user.portalConnection) {
-            await prisma.portalConnection.update({
-              where: { userId: user.id },
-              data: {
-                encryptedPassword: encPass.encrypted,
-                iv: encPass.iv,
-                authTag: encPass.authTag,
-                connectionStatus: "CONNECTED",
-                lastSyncError: null,
-              },
-            });
-          }
-        } catch (err: unknown) {
-          return NextResponse.json(
-            { success: false, error: "Incorrect password for this student account." },
-            { status: 401 }
-          );
         } finally {
           await playwrightAdapter.closeSession();
+        }
+
+        if (!testResult.success) return portalFailureResponse(testResult);
+
+        // Portal accepted the changed password: update local login and saved sync credentials.
+        const newHash = await bcrypt.hash(password, 10);
+        const encPass = encryptCredentials(password);
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            passwordHash: newHash,
+            name: testResult.studentName || user.name,
+          },
+        });
+
+        if (user.portalConnection) {
+          await prisma.portalConnection.update({
+            where: { userId: user.id },
+            data: {
+              encryptedPassword: encPass.encrypted,
+              iv: encPass.iv,
+              authTag: encPass.authTag,
+              connectionStatus: "CONNECTED",
+              lastSyncError: null,
+            },
+          });
         }
       }
     } else {
@@ -134,18 +119,7 @@ export async function POST(request: NextRequest) {
         username: cleanStudentId,
         password,
       }).finally(() => playwrightAdapter.closeSession());
-      if (!testResult.success) {
-        const unavailable = /Executable doesn't exist|browserType\.launch|playwright|Portal connection error/i.test(testResult.message);
-        return NextResponse.json(
-          {
-            success: false,
-            error: unavailable
-              ? "Portal verification is temporarily unavailable. Please try again later."
-              : testResult.message || "Invalid Student User ID or Portal Password on the SVKM SAP portal.",
-          },
-          { status: unavailable ? 503 : 401 }
-        );
-      }
+      if (!testResult.success) return portalFailureResponse(testResult);
       const studentName = testResult.studentName || "Student";
 
       // Valid portal credentials: create new account automatically

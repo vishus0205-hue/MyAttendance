@@ -8,6 +8,8 @@ import { NormalizedAttendanceRecord } from "@/services/portal/portal-adapter.int
 import { persistAttendanceRecords } from "@/services/attendance/persist-records";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 120;
 
 async function triggerGitHubWorkflow(targetUser?: string, fullSync: boolean = false): Promise<boolean> {
   const token = process.env.GITHUB_TOKEN || process.env.GH_PAT;
