@@ -29,8 +29,10 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
       this.browser = await chromium.launch({
         headless: true,
         ...(serverlessChromium ? { executablePath: await serverlessChromium.executablePath() } : {}),
-        args: [
-          ...(serverlessChromium ? serverlessChromium.args : []),
+        args: serverlessChromium ? [
+          ...serverlessChromium.args,
+          "--ignore-certificate-errors",
+        ] : [
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--ignore-certificate-errors",
