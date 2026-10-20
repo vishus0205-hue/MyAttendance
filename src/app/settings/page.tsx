@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useCallback, useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Settings as SettingsIcon,
@@ -55,11 +55,7 @@ function SettingsForm() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/settings");
@@ -74,7 +70,7 @@ function SettingsForm() {
         if (json.connection?.startDate) setStartDate(json.connection.startDate);
         if (json.connection?.endDate) setEndDate(json.connection.endDate);
         if (json.user?.name && json.user.name !== "Student") setFullName(json.user.name);
-        if (json.user?.studentId && !username) setUsername(json.user.studentId);
+        if (json.user?.studentId) setUsername((current) => current || json.user.studentId);
         if (json.user?.targetThreshold) setThreshold(json.user.targetThreshold);
       }
     } catch {
@@ -82,7 +78,11 @@ function SettingsForm() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const saveSettingsPayload = async () => {
     const payload: {

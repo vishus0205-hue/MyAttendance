@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 import bcrypt from "bcryptjs";
 import { signSessionToken, SESSION_COOKIE_NAME } from "@/lib/auth/token";
 import { PlaywrightPortalAdapter } from "@/services/portal/playwright-portal-adapter";
-import { encryptCredentials } from "@/lib/security/crypto";
+import { encryptCredentials, decryptCredentials } from "@/lib/security/crypto";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -16,14 +16,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = loginSchema.parse(body);
     const rawUsername = parsed.username.trim();
+    const cleanStudentId = rawUsername.replace(/@svkm\.ac\.in$/i, "").trim();
     const password = parsed.password;
 
     // Find if user already exists by studentId or email
     let user = await prisma.user.findFirst({
       where: {
         OR: [
+          { studentId: cleanStudentId },
           { studentId: rawUsername },
           { email: rawUsername.toLowerCase() },
+          { email: `${cleanStudentId.toLowerCase()}@svkm.ac.in` },
           { email: `${rawUsername.toLowerCase()}@svkm.ac.in` },
         ],
       },
@@ -34,91 +37,129 @@ export async function POST(request: NextRequest) {
 
     if (user) {
       // 1. Existing user: check bcrypt hash
-      const isMatch = await bcrypt.compare(password, user.passwordHash);
+      let isMatch = await bcrypt.compare(password, user.passwordHash);
+
+      // If bcrypt check failed, check whether password matches their stored encrypted portal password
+      if (!isMatch && user.portalConnection?.encryptedPassword) {
+        try {
+          const decryptedSavedPass = decryptCredentials({
+            encrypted: user.portalConnection.encryptedPassword,
+            iv: user.portalConnection.iv,
+            authTag: user.portalConnection.authTag,
+          });
+
+          if (decryptedSavedPass === password) {
+            isMatch = true;
+            // Upgrade/synchronize local bcrypt hash with verified password
+            const newHash = await bcrypt.hash(password, 10);
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { passwordHash: newHash },
+            });
+          }
+        } catch {
+          // If decryption fails, continue to live portal verification below
+        }
+      }
 
       if (!isMatch) {
-        // If password was changed on portal, verify against SAP portal
-        const testResult = await playwrightAdapter.testConnection({
-          username: user.studentId || rawUsername,
-          password,
-        });
+        // Test against SVKM SAP portal (e.g. if student updated password on official portal)
+        try {
+          const testResult = await playwrightAdapter.testConnection({
+            username: user.studentId || cleanStudentId,
+            password,
+          });
 
-        if (!testResult.success) {
+          const isBrowserMissing = Boolean(
+            testResult.message?.includes("Executable doesn't exist") ||
+            testResult.message?.includes("browserType.launch") ||
+            testResult.message?.includes("playwright")
+          );
+
+          if (!testResult.success) {
+            if (isBrowserMissing) {
+              return NextResponse.json(
+                {
+                  success: false,
+                  error: "Password incorrect. If you recently updated your SAP portal password, please update your credentials in Settings.",
+                },
+                { status: 401 }
+              );
+            }
+            return NextResponse.json(
+              {
+                success: false,
+                error: testResult.message || "Invalid Student User ID or Portal Password on the SVKM SAP portal.",
+              },
+              { status: 401 }
+            );
+          }
+
+          // Portal accepted new password: update stored hash and encrypted credentials
+          const newHash = await bcrypt.hash(password, 10);
+          const encPass = encryptCredentials(password);
+
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              passwordHash: newHash,
+              name: testResult.studentName || user.name,
+            },
+          });
+
+          if (user.portalConnection) {
+            await prisma.portalConnection.update({
+              where: { userId: user.id },
+              data: {
+                encryptedPassword: encPass.encrypted,
+                iv: encPass.iv,
+                authTag: encPass.authTag,
+                connectionStatus: "CONNECTED",
+                lastSyncError: null,
+              },
+            });
+          }
+        } catch (err: unknown) {
           return NextResponse.json(
             { success: false, error: "Incorrect password for this student account." },
             { status: 401 }
           );
+        } finally {
+          await playwrightAdapter.closeSession();
         }
-
-        // Portal accepted new password: update stored hash and encrypted credentials
-        const newHash = await bcrypt.hash(password, 10);
-        const encPass = encryptCredentials(password);
-
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            passwordHash: newHash,
-            name: testResult.studentName || user.name,
-          },
-        });
-
-        await prisma.portalConnection.update({
-          where: { userId: user.id },
-          data: {
-            encryptedPassword: encPass.encrypted,
-            iv: encPass.iv,
-            authTag: encPass.authTag,
-            connectionStatus: "CONNECTED",
-          },
-        });
       }
     } else {
-      // 2. New user: Authenticate against the SVKM SAP portal (if browser is available)
-      let studentName = "Student";
-
-      try {
-        const testResult = await playwrightAdapter.testConnection({
-          username: rawUsername,
-          password,
-        });
-
-        const isBrowserMissing = Boolean(
-          testResult.message?.includes("Executable doesn't exist") ||
-          testResult.message?.includes("browserType.launch") ||
-          testResult.message?.includes("playwright")
+      // Never create a student account until the portal confirms the credentials.
+      const testResult = await playwrightAdapter.testConnection({
+        username: cleanStudentId,
+        password,
+      }).finally(() => playwrightAdapter.closeSession());
+      if (!testResult.success) {
+        const unavailable = /Executable doesn't exist|browserType\.launch|playwright|Portal connection error/i.test(testResult.message);
+        return NextResponse.json(
+          {
+            success: false,
+            error: unavailable
+              ? "Portal verification is temporarily unavailable. Please try again later."
+              : testResult.message || "Invalid Student User ID or Portal Password on the SVKM SAP portal.",
+          },
+          { status: unavailable ? 503 : 401 }
         );
-
-        if (!testResult.success && !isBrowserMissing) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: testResult.message || "Invalid Student User ID or Portal Password on the SVKM SAP portal.",
-            },
-            { status: 401 }
-          );
-        }
-        if (testResult.studentName) {
-          studentName = testResult.studentName;
-        }
-      } catch (browserErr: unknown) {
-        // In serverless environments (like Vercel) without a local Chromium binary,
-        // accept the student's credentials and save them securely encrypted.
-        // The automated GitHub Actions runner will execute the actual browser sync.
-        console.warn("Playwright browser not available in serverless runtime, proceeding with registration.");
       }
+      const studentName = testResult.studentName || "Student";
 
       // Valid portal credentials: create new account automatically
       const passwordHash = await bcrypt.hash(password, 10);
-      const encUser = encryptCredentials(rawUsername);
+      const encUser = encryptCredentials(cleanStudentId);
       const encPass = encryptCredentials(password);
 
       const studentEmail = rawUsername.includes("@")
         ? rawUsername.toLowerCase()
-        : `${rawUsername.toLowerCase()}@svkm.ac.in`;
+        : `${cleanStudentId.toLowerCase()}@svkm.ac.in`;
 
       user = await prisma.user.create({
         data: {
-          studentId: rawUsername,
+          studentId: cleanStudentId,
           email: studentEmail,
           passwordHash,
           name: studentName,

@@ -5,7 +5,10 @@ import { signSessionToken, SESSION_COOKIE_NAME } from "@/lib/auth/token";
 import { z } from "zod";
 
 const registerSchema = z.object({
-  email: z.string().email("Please provide a valid email address."),
+  email: z.string().email("Please provide a valid email address.").refine(
+    (email) => !email.trim().toLowerCase().endsWith("@svkm.ac.in"),
+    "SVKM accounts must be verified through portal login."
+  ),
   password: z.string().min(6, "Password must be at least 6 characters long."),
   name: z.string().min(1, "Name is required.").optional(),
   targetThreshold: z.number().min(50).max(100).optional().default(75.0),

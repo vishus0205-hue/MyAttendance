@@ -38,22 +38,6 @@ export async function getAuthenticatedUser(): Promise<AppUserSession> {
     }
   }
 
-  // Fallback for transition: if only 1 user exists and no session cookie is present,
-  // allow accessing that profile until they log in or create another profile
-  const userCount = await prisma.user.count();
-  if (userCount === 1) {
-    const singleUser = await prisma.user.findFirst();
-    if (singleUser) {
-      return {
-        id: singleUser.id,
-        studentId: singleUser.studentId,
-        email: singleUser.email,
-        name: singleUser.name || "Student",
-        targetThreshold: singleUser.targetThreshold,
-      };
-    }
-  }
-
   throw new Error("Unauthorized. Please log in to your account.");
 }
 

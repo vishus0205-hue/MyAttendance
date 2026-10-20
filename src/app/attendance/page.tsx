@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Download,
   Search,
@@ -39,17 +39,14 @@ export default function AttendanceLogPage() {
 
   // Filters & Pagination
   const [search, setSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
 
-  useEffect(() => {
-    fetchRecords();
-  }, [page, selectedSubject, selectedStatus]);
-
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -59,7 +56,7 @@ export default function AttendanceLogPage() {
 
       if (selectedSubject) params.set("subjectId", selectedSubject);
       if (selectedStatus) params.set("status", selectedStatus);
-      if (search) params.set("search", search);
+      if (appliedSearch) params.set("search", appliedSearch);
 
       const res = await fetch(`/api/attendance/records?${params.toString()}`);
       const json = await res.json();
@@ -75,12 +72,16 @@ export default function AttendanceLogPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, selectedSubject, selectedStatus, appliedSearch]);
+
+  useEffect(() => {
+    fetchRecords();
+  }, [fetchRecords]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchRecords();
+    setAppliedSearch(search);
   };
 
   const handleExportCSV = () => {

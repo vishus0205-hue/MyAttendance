@@ -4,8 +4,8 @@ import { getAuthenticatedUser } from "@/lib/auth/session";
 import { MockPortalAdapter } from "@/services/portal/mock-portal-adapter";
 import { PlaywrightPortalAdapter } from "@/services/portal/playwright-portal-adapter";
 import { decryptCredentials } from "@/lib/security/crypto";
-import { AttendanceStatus } from "@prisma/client";
 import { NormalizedAttendanceRecord } from "@/services/portal/portal-adapter.interface";
+import { persistAttendanceRecords } from "@/services/attendance/persist-records";
 
 export const dynamic = "force-dynamic";
 
@@ -188,66 +188,7 @@ export async function POST(request: Request) {
         recordSource = "DEMO_SEED";
       }
 
-      // Upsert subjects and records with in-memory caching to minimize database roundtrips
-      const existingSubjects = await prisma.subject.findMany({
-        where: { userId: user.id },
-      });
-      const subjectMap = new Map<string, string>();
-      for (const s of existingSubjects) {
-        subjectMap.set(s.name, s.id);
-      }
-
-      for (const item of normalizedRecords) {
-        try {
-          let subjectId = subjectMap.get(item.subjectName);
-          if (!subjectId) {
-            const subject = await prisma.subject.upsert({
-              where: {
-                userId_name: {
-                  userId: user.id,
-                  name: item.subjectName,
-                },
-              },
-              update: { code: item.subjectCode || undefined },
-              create: {
-                userId: user.id,
-                name: item.subjectName,
-                code: item.subjectCode || undefined,
-              },
-            });
-            subjectId = subject.id;
-            subjectMap.set(item.subjectName, subjectId);
-          }
-
-          await prisma.attendanceRecord.upsert({
-            where: {
-              userId_subjectId_attendanceDate_periodNumber: {
-                userId: user.id,
-                subjectId: subjectId,
-                attendanceDate: item.attendanceDate,
-                periodNumber: item.periodNumber ?? 1,
-              },
-            },
-            update: {
-              status: item.status as AttendanceStatus,
-              source: recordSource,
-              lastObservedAt: new Date(),
-            },
-            create: {
-              userId: user.id,
-              subjectId: subjectId,
-              attendanceDate: item.attendanceDate,
-              periodNumber: item.periodNumber ?? 1,
-              status: item.status as AttendanceStatus,
-              source: recordSource,
-              lastObservedAt: new Date(),
-            },
-          });
-          inserted++;
-        } catch (recordErr: unknown) {
-          console.warn(`Warning saving record for ${item.subjectName}:`, recordErr);
-        }
-      }
+      ({ inserted, updated } = await persistAttendanceRecords(user.id, normalizedRecords, recordSource));
 
       // 4. Update job and connection to SUCCESS
       await prisma.$transaction([
@@ -334,6 +275,45 @@ export async function POST(request: Request) {
             jobId: job.id,
           },
           { status: 503 }
+        );
+      }
+
+      const isHoursRestricted =
+        errorMsg.includes("PORTAL_HOURS_RESTRICTED") ||
+        errorMsg.includes("between 06:00 PM to 07:00 AM") ||
+        errorMsg.includes("06:00 PM to 07:00 AM");
+
+      if (isHoursRestricted) {
+        const friendlyNotice =
+          "SVKM SAP Portal restricts attendance viewing to between 06:00 PM and 07:00 AM IST. Portal attendance is locked during daytime university hours. Please try syncing again after 6:00 PM IST.";
+
+        await prisma.attendanceSyncJob.update({
+          where: { id: job.id },
+          data: {
+            status: "FAILED",
+            completedAt: new Date(),
+            sanitizedErrorMessage: friendlyNotice,
+          },
+        });
+
+        if (portalConn) {
+          await prisma.portalConnection.update({
+            where: { userId: user.id },
+            data: {
+              lastSyncAttemptAt: new Date(),
+              lastSyncError: friendlyNotice,
+            },
+          });
+        }
+
+        return NextResponse.json(
+          {
+            success: false,
+            restrictedHours: true,
+            error: friendlyNotice,
+            jobId: job.id,
+          },
+          { status: 403 }
         );
       }
 

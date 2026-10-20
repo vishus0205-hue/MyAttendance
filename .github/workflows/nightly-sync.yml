@@ -2,8 +2,14 @@ name: SVKM Portal Nightly Attendance Sync
 
 on:
   schedule:
-    # 22:30 UTC = 4:00 AM IST (Automated early morning sync before college hours)
-    - cron: '30 22 * * *'
+    # SVKM SAP Portal only allows attendance queries between 6:00 PM and 7:00 AM IST (12:30 UTC - 01:30 UTC).
+    # Using non-round minutes (avoiding :00 and :30) to bypass GitHub Actions runner queue congestion:
+    # 1. 20:17 UTC = 01:47 AM IST (Primary early morning run, safely before the 7:00 AM IST cutoff)
+    - cron: '17 20 * * *'
+    # 2. 22:13 UTC = 03:43 AM IST (Secondary early morning refresh before students wake up)
+    - cron: '13 22 * * *'
+    # 3. 14:47 UTC = 08:17 PM IST (Evening run after daily college lectures and faculty upload)
+    - cron: '47 14 * * *'
   # Allows you to manually trigger the sync from GitHub Actions UI anytime
   workflow_dispatch:
     inputs:

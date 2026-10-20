@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useCallback, useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -37,11 +37,7 @@ function SubjectsContent() {
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
   const [targetPercent, setTargetPercent] = useState<number>(75);
 
-  useEffect(() => {
-    fetchSummary();
-  }, []);
-
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/attendance/summary");
@@ -61,7 +57,11 @@ function SubjectsContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [querySubjectId]);
+
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]);
 
   const activeSubject = subjects.find((s) => s.subjectId === selectedSubjectId) || subjects[0];
 

@@ -108,6 +108,7 @@ MyAttendance was built with security as a first-class concern.
 
 - **Node.js** v20+
 - **Docker** (for local PostgreSQL)
+- **Playwright Chromium** for first-time SVKM portal login (`npx playwright install chromium`). The app only creates an SVKM account after the portal verifies its credentials; deploy first-time login on a runtime with Chromium available.
 
 ### 1. Clone the Repository
 

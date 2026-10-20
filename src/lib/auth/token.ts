@@ -13,8 +13,8 @@ export const SESSION_COOKIE_NAME = "myattendance_session";
 
 function getSecret(): string {
   const secret = process.env.AUTH_SECRET;
-  if (!secret) {
-    return "default_myattendance_jwt_secret_key_32_characters_minimum";
+  if (!secret || secret.length < 32) {
+    throw new Error("AUTH_SECRET must be configured with at least 32 characters.");
   }
   return secret;
 }

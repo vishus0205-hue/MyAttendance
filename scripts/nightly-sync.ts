@@ -1,7 +1,7 @@
 import { prisma } from "../src/lib/db/prisma";
 import { PlaywrightPortalAdapter } from "../src/services/portal/playwright-portal-adapter";
 import { decryptCredentials } from "../src/lib/security/crypto";
-import { AttendanceStatus } from "@prisma/client";
+import { persistAttendanceRecords } from "../src/services/attendance/persist-records";
 
 async function runNightlySync() {
   console.log("🌙 [Nightly Sync] Starting attendance sync job...");
@@ -139,69 +139,7 @@ async function runNightlySync() {
       }
 
       const records = await adapter.parseReport(report);
-      let inserted = 0;
-      let updated = 0;
-
-      // In-memory cache of subjects for this user to avoid hundreds of redundant database upserts
-      const existingSubjects = await prisma.subject.findMany({
-        where: { userId: user.id },
-      });
-      const subjectMap = new Map<string, string>();
-      for (const s of existingSubjects) {
-        subjectMap.set(s.name, s.id);
-      }
-
-      for (const item of records) {
-        try {
-          let subjectId = subjectMap.get(item.subjectName);
-          if (!subjectId) {
-            const subject = await prisma.subject.upsert({
-              where: {
-                userId_name: {
-                  userId: user.id,
-                  name: item.subjectName,
-                },
-              },
-              update: { code: item.subjectCode || undefined },
-              create: {
-                userId: user.id,
-                name: item.subjectName,
-                code: item.subjectCode || undefined,
-              },
-            });
-            subjectId = subject.id;
-            subjectMap.set(item.subjectName, subjectId);
-          }
-
-          await prisma.attendanceRecord.upsert({
-            where: {
-              userId_subjectId_attendanceDate_periodNumber: {
-                userId: user.id,
-                subjectId: subjectId,
-                attendanceDate: item.attendanceDate,
-                periodNumber: item.periodNumber ?? 1,
-              },
-            },
-            update: {
-              status: item.status as AttendanceStatus,
-              source: "PORTAL_SYNC",
-              lastObservedAt: new Date(),
-            },
-            create: {
-              userId: user.id,
-              subjectId: subjectId,
-              attendanceDate: item.attendanceDate,
-              periodNumber: item.periodNumber ?? 1,
-              status: item.status as AttendanceStatus,
-              source: "PORTAL_SYNC",
-              lastObservedAt: new Date(),
-            },
-          });
-          inserted++;
-        } catch (recordErr: any) {
-          console.warn(`⚠️ Warning saving record for ${item.subjectName} (${item.attendanceDate}):`, recordErr.message);
-        }
-      }
+      const { inserted, updated } = await persistAttendanceRecords(user.id, records, "PORTAL_SYNC");
 
       await prisma.$transaction([
         prisma.attendanceSyncJob.update({
@@ -226,29 +164,51 @@ async function runNightlySync() {
 
       console.log(`🎉 SUCCESS: User ${user.email} synced! (Fetched: ${records.length}, New: ${inserted}, Updated: ${updated})`);
     } catch (err: any) {
-      console.error(`❌ Sync error for user ${user.email}:`, err.message);
+      const errMsg = err?.message || String(err);
+      console.error(`❌ Sync error for user ${user.email}:`, errMsg);
+
+      const isHoursRestricted =
+        errMsg.includes("PORTAL_HOURS_RESTRICTED") ||
+        errMsg.includes("between 06:00 PM to 07:00 AM") ||
+        errMsg.includes("06:00 PM to 07:00 AM");
+
+      const isAuthFailed =
+        errMsg.includes("Invalid credentials") ||
+        errMsg.includes("expired password") ||
+        errMsg.includes("User authentication failed") ||
+        errMsg.includes("Logon failed");
+
       await prisma.$transaction([
         prisma.attendanceSyncJob.update({
           where: { id: job.id },
           data: {
             status: "FAILED",
             completedAt: new Date(),
-            sanitizedErrorMessage: err.message?.substring(0, 500),
+            sanitizedErrorMessage: errMsg.substring(0, 500),
           },
         }),
         prisma.portalConnection.update({
           where: { id: conn.id },
           data: {
-            lastSyncError: err.message?.substring(0, 255),
+            lastSyncError: errMsg.substring(0, 255),
+            connectionStatus: isAuthFailed ? "AUTH_FAILED" : conn.connectionStatus,
           },
         }),
       ]);
+
+      if (isHoursRestricted) {
+        console.warn(
+          "\n⛔ [ALERT] SVKM SAP Portal attendance window is closed. (University restriction: 06:00 PM to 07:00 AM IST only)."
+        );
+        console.warn("Stopping sync job early to avoid repeated timeout errors.");
+        break;
+      }
     } finally {
       await adapter.closeSession();
     }
   }
 
-  console.log("\n✨ Nightly sync process finished for all users.");
+  console.log("\n✨ Nightly sync process finished.");
 }
 
 runNightlySync()

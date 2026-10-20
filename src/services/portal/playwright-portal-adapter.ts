@@ -6,34 +6,16 @@ import {
   DateRange,
   RawAttendanceReport,
   NormalizedAttendanceRecord,
-  RawAttendanceItem,
   AttendanceReportOptions,
 } from "./portal-adapter.interface";
 import { AttendanceStatusType } from "../attendance/attendance-calculator";
+import { parsePdfAttendanceItems } from "./pdf-attendance-parser";
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const pdfParse = require("pdf-parse");
 
 const DEFAULT_PORTAL_URL = "https://sdc-sppap1.svkm.ac.in:50001/irj/portal";
 const CHROME_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
-
-function cleanSubjectName(raw: string): string {
-  let cleaned = raw
-    .replace(/(?:T2|P2|T1|P1)\s*(?:MBA\s*Tech|MBATech|ALL)?.*$/i, "")
-    .trim();
-
-  if (/Image and Vid/i.test(cleaned)) return "Image and Video Processing";
-  if (/Artificial Intellige/i.test(cleaned)) return "Artificial Intelligence";
-  if (/Mobile Application/i.test(cleaned)) return "Mobile Application Development";
-  if (/AI Recept/i.test(cleaned)) return "AI Reception & Software Development";
-  if (/Fundamentals of Climate/i.test(cleaned)) return "Fundamentals of Climate Change";
-  if (/Management Through Movies/i.test(cleaned)) return "Management Through Movies";
-  if (/Operating Systems/i.test(cleaned)) return "Operating Systems";
-  if (/Software Engineering/i.test(cleaned)) return "Software Engineering";
-
-  return cleaned || raw.trim();
-}
 
 export class PlaywrightPortalAdapter implements IPortalAdapter {
   readonly adapterName = "PLAYWRIGHT_SAP_PROVIDER";
@@ -81,6 +63,25 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
     let context: BrowserContext | null = null;
 
     try {
+      // Normalize username: extract raw SAP ID if college email was provided (e.g. 70472400419@svkm.ac.in -> 70472400419)
+      const cleanUsername = (credentials.username || "")
+        .replace(/@svkm\.ac\.in$/i, "")
+        .trim();
+
+      if (!cleanUsername) {
+        return {
+          success: false,
+          message: "Student SAP ID is required for authentication.",
+        };
+      }
+
+      if (!credentials.password) {
+        return {
+          success: false,
+          message: "Portal password is required for authentication.",
+        };
+      }
+
       const browser = await this.getBrowser();
       context = await this.createContext(browser);
       const page = await context.newPage();
@@ -89,31 +90,24 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
       const userField = page.locator("#logonuidfield");
       await userField.waitFor({ state: "visible", timeout: 20000 });
 
-      if (!credentials.password) {
-        return {
-          success: false,
-          message: "Password is required for connection testing",
-        };
-      }
-
       await page.waitForFunction(
         () => typeof (window as unknown as { code?: string }).code === "string" && (window as unknown as { code?: string }).code!.length > 0,
         { timeout: 10000 }
-      );
+      ).catch(() => null);
 
       const captchaCode = await page.evaluate(() => {
         const win = window as unknown as { code?: string };
         return typeof win.code === "string" ? win.code : "";
       });
 
-      await userField.fill(credentials.username);
+      await userField.fill(cleanUsername);
       await page.fill("#logonpassfield", credentials.password);
       if (captchaCode) {
         await page.fill("#txtInput", captchaCode);
       }
 
       await Promise.all([
-        page.waitForNavigation({ waitUntil: "commit", timeout: 30000 }).catch(() => null),
+        page.waitForNavigation({ waitUntil: "commit", timeout: 35000 }).catch(() => null),
         page.evaluate(() => {
           const form = (document as unknown as { logonForm?: HTMLFormElement }).logonForm;
           if (form) form.submit();
@@ -121,17 +115,36 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
         }),
       ]);
 
-      await page.waitForTimeout(4000);
+      // Wait for post-login indicators (welcome header, navigation, session conflict modal, or error text)
+      await page.waitForSelector(
+        "#navNode_1_4, #welcome_message, .prtlHdrWelcome, .urTxtError, #logonErrorText, input[value*='Continue'], button:has-text('Continue'), #button_continue",
+        { timeout: 15000 }
+      ).catch(() => null);
+
+      await page.waitForTimeout(1000);
+
+      // Handle session conflict modal if user is logged into SAP portal in another tab/browser
+      const continueBtn = page.locator(
+        "input[value*='Continue'], button:has-text('Continue'), input[name*='terminate'], #button_continue"
+      );
+      if ((await continueBtn.count()) > 0) {
+        await continueBtn.first().click().catch(() => null);
+        await page.waitForTimeout(1500);
+      }
 
       const pageContent = await page.content();
       if (
         pageContent.includes("User authentication failed") ||
         pageContent.includes("Logon failed") ||
-        pageContent.includes("Invalid username or password")
+        pageContent.includes("Invalid username or password") ||
+        pageContent.includes("Invalid user name or password") ||
+        pageContent.includes("Password has expired") ||
+        pageContent.includes("User is locked") ||
+        pageContent.includes("Client, user, or password is incorrect")
       ) {
         return {
           success: false,
-          message: "Invalid student credentials entered on portal",
+          message: "Invalid Student User ID or Portal Password on the SVKM SAP portal.",
         };
       }
 
@@ -149,13 +162,16 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
         return "";
       });
 
+      const hasAttendanceTab = (await page.locator("#navNode_1_4, td:has-text('Attendance Display for Students')").count()) > 0;
+      const isConfirmed = hasSapSession || Boolean(welcomeName) || hasAttendanceTab;
+
       return {
-        success: hasSapSession,
-        message: hasSapSession
+        success: isConfirmed,
+        message: isConfirmed
           ? "Authentication successful with SVKM SAP Portal"
           : "Login submitted, awaiting confirmation",
         studentName: welcomeName || undefined,
-        studentId: credentials.username,
+        studentId: cleanUsername,
       };
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
@@ -199,7 +215,11 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
         return typeof win.code === "string" ? win.code : "";
       });
 
-      await page.fill("#logonuidfield", credentials.username);
+      const cleanUsername = (credentials.username || "")
+        .replace(/@svkm\.ac\.in$/i, "")
+        .trim();
+
+      await page.fill("#logonuidfield", cleanUsername);
       await page.fill("#logonpassfield", credentials.password || "");
       if (captchaCode) {
         await page.fill("#txtInput", captchaCode);
@@ -314,6 +334,18 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
 
       if (!reportFrame) {
         throw new Error("Could not find SAP Attendance Report form frame within portal.");
+      }
+
+      // Check whether SAP Portal is restricting attendance display due to operating hours
+      const frameNotice = await reportFrame.evaluate(() => document.body?.innerText || "").catch(() => "");
+      if (
+        frameNotice.includes("between 06:00 PM to 07:00 AM") ||
+        frameNotice.includes("06:00 PM to 07:00 AM") ||
+        frameNotice.includes("between 18:00 to 07:00")
+      ) {
+        throw new Error(
+          "PORTAL_HOURS_RESTRICTED: SVKM SAP Portal permits attendance queries only between 06:00 PM and 07:00 AM IST. Portal is currently restricted for daytime university hours."
+        );
       }
 
       // 4. Select Academic Year (WD2B)
@@ -437,36 +469,7 @@ export class PlaywrightPortalAdapter implements IPortalAdapter {
       const parsedPdf = await pdfParse(pdfBuffer);
       const fullText = parsedPdf.text || "";
 
-      const items: RawAttendanceItem[] = [];
-      const datePattern = /((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4})/g;
-      let dateMatch: RegExpExecArray | null;
-      const datePositions: { date: string; index: number }[] = [];
-
-      while ((dateMatch = datePattern.exec(fullText)) !== null) {
-        datePositions.push({ date: dateMatch[1], index: dateMatch.index });
-      }
-
-      for (let i = 0; i < datePositions.length; i++) {
-        const cur = datePositions[i];
-        const prevIndex = i === 0 ? 0 : datePositions[i - 1].index + datePositions[i - 1].date.length;
-        const nextIndex = i < datePositions.length - 1 ? datePositions[i + 1].index : fullText.length;
-
-        const beforeText = fullText.substring(prevIndex, cur.index);
-        const afterText = fullText.substring(cur.index + cur.date.length, nextIndex);
-
-        const matchCourse = beforeText.match(/(?:^|\n)\s*(\d+)\s*(?:\r?\n|\t)\s*([^\r\n\t]+?)\s*$/);
-        const rawCourse = matchCourse ? matchCourse[2].trim() : "Unknown Course";
-        const subjectName = cleanSubjectName(rawCourse);
-
-        const matchStatus = afterText.match(/(?:AM|PM)\s*\n\s*([PAEL]|NU)\b/) || afterText.match(/\b([PAEL]|NU)\b/);
-        const statusLetter = matchStatus ? matchStatus[1].toUpperCase() : "P";
-
-        items.push({
-          date: cur.date,
-          subjectName,
-          status: statusLetter,
-        });
-      }
+      const items = parsePdfAttendanceItems(fullText);
 
       let resolvedStudentName = studentName;
       if (!resolvedStudentName) {
